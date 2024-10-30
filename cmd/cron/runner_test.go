@@ -48,8 +48,3 @@ func GetSecondLevelDomain(referer string) string {
 	}
 	return "." + parts[len(parts)-2] + "." + parts[len(parts)-1]
 }
-
-func TestAAA(t *testing.T) {
-	fmt.Println(url.QueryUnescape("%E9%B8%BF%E5%8A%B1"))
-	fmt.Println(GetSecondLevelDomain("https://tcdp.run.alipay.net/postgresql/operation/task"))
-}
