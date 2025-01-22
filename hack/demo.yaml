@@ -1,0 +1,27 @@
+# 存在子任务
+jobName: demoJob1
+  desc：负责演示的任务定义
+  spec
+    childjobs：
+    - name：前置校验
+      desc：我是子任务1的描述
+      pause：true      # 是否可以暂停
+      env：            # 这里可以通过env额外添加入参
+      - key1: xxx
+        key2: xxx
+      pipelines
+      - name：节点任务1
+        action：funcdotask1  # action 标识执行节点的任务内容
+      - name：节点任务2
+        action：funcdotask2
+    - name：执行内容
+        desc：我是子任务1的描述
+        pause：true      # 是否可以暂停
+        env：            # 这里可以通过env额外添加入参
+        - key1: xxx
+          key2: xxx
+        pipelines
+        - name：节点任务1
+          action：funcdotask1  # action 标识执行节点的任务内容
+        - name：节点任务2
+          action：funcdotask2
