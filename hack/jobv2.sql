@@ -1,10 +1,12 @@
 CREATE TABLE `job_cron`
 (
     `id`           int           NOT NULL AUTO_INCREMENT COMMENT '主键编码',
+    `app_name`  varchar(50)            DEFAULT NULL COMMENT '应用名称',
+    `tenant`    varchar(50)            DEFAULT NULL COMMENT '租户信息',
     `locker`    varchar(30)   NOT NULL DEFAULT '' COMMENT '锁拥有者',
     `entry_id`     int           NOT NULL DEFAULT '0' COMMENT '定时任务id',
     `spec`         varchar(30)   NOT NULL DEFAULT '' COMMENT '定时表达式',
-    `exec_type`    varchar(20)   NOT NULL DEFAULT '' COMMENT '执行任务类型，如job、func、shell',
+    `exec_type`    varchar(20)   NOT NULL DEFAULT '' COMMENT '执行任务类型，如job、func、shell、http',
     `exec_content` varchar(1000) NOT NULL DEFAULT '' COMMENT '执行任务内容',
     `status`       varchar(50)   NOT NULL DEFAULT '' COMMENT '状态',
     `create_at`    int           NOT NULL DEFAULT '0' COMMENT '创建时间',
@@ -62,10 +64,11 @@ CREATE TABLE `job_token`
 ) DEFAULT CHARSET = utf8mb4 COMMENT='任务token表';
 
 
-CREATE TABLE `jobv2`
+CREATE TABLE `job`
 (
     `id`        int           NOT NULL AUTO_INCREMENT COMMENT '主键编码',
     `biz_id`    varchar(36)            DEFAULT NULL COMMENT '业务方产生的唯一id',
+    `app_name`  varchar(50)            DEFAULT NULL COMMENT '应用名称',
     `tenant`    varchar(50)            DEFAULT NULL COMMENT '租户信息',
     `root_id`   int           NOT NULL DEFAULT '0' COMMENT '主/根任务id',
     `parent_id` int           NOT NULL DEFAULT '0' COMMENT '父级任务id',
@@ -95,6 +98,7 @@ CREATE TABLE `jobv2`
 CREATE TABLE `job_definition` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `name` varchar(80) NOT NULL DEFAULT '' COMMENT '名称',
+  `app_name`  varchar(50)            DEFAULT NULL COMMENT '应用名称',
   `tenant` varchar(50) NOT NULL DEFAULT '' COMMENT '租户信息',
   `sort` int unsigned NOT NULL COMMENT '排序',
   `pipelines` varchar(2000) NOT NULL DEFAULT '' COMMENT '流水线json格式',

@@ -11,6 +11,7 @@ type Job struct {
 	Name     string `gorm:"column:name" json:"name" xorm:"name"`                 // 任务名称
 	Desc     string `gorm:"column:description" json:"desc" xorm:"description"`   // 任务描述
 	Owner    string `gorm:"column:owner" json:"owner" xorm:"owner"`              // 任务归属人
+	AppName  string `gorm:"column:app_name" json:"app_name" xorm:"app_name"`     // 应用名称
 	Tenant   string `gorm:"column:tenant" json:"tenant" xorm:"tenant"`           // tenant
 	BizID    string `gorm:"column:biz_id" json:"biz_id,omitempty" xorm:"biz_id"` // 业务产生的唯一id
 	Pause    int8   `gorm:"column:pause" json:"pause" xorm:"pause"`              // 是否允许暂停
@@ -25,7 +26,7 @@ type Job struct {
 }
 
 func (j *Job) TableName() string {
-	return "jobv2"
+	return "job"
 }
 
 func (j *Job) Save() (err error) {

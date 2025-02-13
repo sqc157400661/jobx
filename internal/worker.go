@@ -94,6 +94,7 @@ func (w *DefaultWorker) process(pipeline *Pipeline) {
 			pipeline.Finish()
 		}
 	}()
+	// TODO : 定期维护执行心跳，用于无主任务回收
 	// pipeCtx may interrupt loss
 	var pipeCtx map[string]interface{}
 	for _, task := range pipeline.Tasks {

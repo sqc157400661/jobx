@@ -10,6 +10,8 @@ type JobCron struct {
 	ExecType    string `gorm:"column:exec_type" json:"exec_type" xorm:"exec_type"`          // 执行任务类型，如job、func、shell
 	ExecContent string `gorm:"column:exec_content" json:"exec_content" xorm:"exec_content"` // 执行任务内容
 	Status      string `gorm:"column:status" json:"status" xorm:"status"`                   // 状态
+	AppName     string `gorm:"column:app_name" json:"app_name" xorm:"app_name"`             // 应用名称
+	Tenant      string `gorm:"column:tenant" json:"tenant" xorm:"tenant"`                   // tenant
 	Locker      string `gorm:"column:locker" json:"locker" xorm:"locker"`                   // 锁拥有者
 	CreateAt    int    `gorm:"column:create_at" json:"create_at" xorm:"created"`            // 创建时间
 	UpdateAt    int    `gorm:"column:update_at" json:"update_at" xorm:"updated"`            // 更新时间

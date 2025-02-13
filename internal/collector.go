@@ -65,7 +65,7 @@ func (c *DefaultCollector) lock(uid string) (lockedNum int64, err error) {
 	var res sql.Result
 	// CAS
 	uidPreLock := fmt.Sprintf("%s%s", config.PreLockPrefix, uid)
-	res, err = dao.JFDb.Exec(`update jobv2 set locker=? where  parent_id=0 and (locker='' or locker=?) and phase =? order by id asc limit ?`, uid, uidPreLock, config.PhaseReady, c.len)
+	res, err = dao.JFDb.Exec(`update job set locker=? where  parent_id=0 and (locker='' or locker=?) and phase =? order by id asc limit ?`, uid, uidPreLock, config.PhaseReady, c.len)
 	if err != nil {
 		return 0, err
 	}
@@ -73,6 +73,6 @@ func (c *DefaultCollector) lock(uid string) (lockedNum int64, err error) {
 }
 
 func (c *DefaultCollector) unLock(uid string, jobId int) (err error) {
-	_, err = dao.JFDb.Exec(`update jobv2 set locker='',phase =?  where locker=? and id =?`, config.PhaseReady, uid, jobId)
+	_, err = dao.JFDb.Exec(`update job set locker='',phase =?  where locker=? and id =?`, config.PhaseReady, uid, jobId)
 	return
 }
