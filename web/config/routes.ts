@@ -98,6 +98,19 @@ export default [
     ],
   },
   {
+    path: '/job',
+    icon: 'table',
+    name: 'job',
+    routes: [
+      {
+        name: 'job-list',
+        icon: 'smile',
+        path: '/job/list',
+        component: './table-list',
+      },
+    ],
+  },
+  {
     path: '/list',
     icon: 'table',
     name: 'list',
