@@ -106,7 +106,7 @@ export default [
         name: 'job-list',
         icon: 'smile',
         path: '/job/list',
-        component: './table-list',
+        component: './job/list',
       },
     ],
   },
