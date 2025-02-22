@@ -54,7 +54,7 @@ const genList = (current: number, pageSize: number) => {
 
 let tableListDataSource = genList(1, 100);
 
-function getRule(req: Request, res: Response, u: string) {
+function getJob(req: Request, res: Response, u: string) {
   let realUrl = u;
   if (!realUrl || Object.prototype.toString.call(realUrl) !== '[object String]') {
     realUrl = req.url;
@@ -191,7 +191,7 @@ function postRule(req: Request, res: Response, u: string, b: Request) {
 }
 
 export default {
-  'GET /api/rule': getRule,
+  'GET /api/job': getJob,
   'POST /api/rule': postRule,
   'DELETE /api/rule': postRule,
   'PUT /api/rule': postRule,

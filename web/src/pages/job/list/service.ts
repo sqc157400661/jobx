@@ -3,8 +3,8 @@
 import { request } from '@umijs/max';
 import { TableListItem } from './data';
 
-/** 获取规则列表 GET /api/rule */
-export async function rule(
+/** 获取Job列表 GET /api/job */
+export async function getJob(
   params: {
     // query
     /** 当前的页码 */
@@ -19,7 +19,7 @@ export async function rule(
     /** 列表的内容总数 */
     total?: number;
     success?: boolean;
-  }>('/api/rule', {
+  }>('/api/job', {
     method: 'GET',
     params: {
       ...params,

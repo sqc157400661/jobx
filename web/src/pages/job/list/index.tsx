@@ -13,8 +13,8 @@ import { Button, Drawer, Input, message } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
-import type { TableListItem, TableListPagination } from './data';
-import { addRule, removeRule, rule, updateRule } from './service';
+import type { TableListItem, TableListPagination,Pipeline } from './data';
+import { addRule, removeRule, getJob, updateRule } from './service';
 /**
  * 添加节点
  *
@@ -187,6 +187,52 @@ const TableList: React.FC = () => {
     },
   ];
 
+  /** 子表列配置 */
+  const pipelineColumns: ProColumns<Pipeline>[] = [
+    {
+      title: '名称',
+      dataIndex: 'name',
+    },
+    {
+      title: '操作',
+      dataIndex: 'action',
+    },
+    {
+      title: '所有者',
+      dataIndex: 'owner',
+    },
+    {
+      title: '描述',
+      dataIndex: 'desc',
+    },
+    {
+      title: '原因',
+      dataIndex: 'reason',
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updatedAt',
+      valueType: 'dateTime',
+    },
+  ];
+
+  const expandedRowRender = (record: TableListItem) => {
+    return (
+      <ProTable
+        columns={pipelineColumns}
+        headerTitle={false}
+        search={false}
+        options={false}
+        dataSource={record.pipelines}
+        pagination={false}
+      />
+    );
+  };
+
   return (
     <PageContainer>
       <ProTable<TableListItem, TableListPagination>
@@ -207,9 +253,10 @@ const TableList: React.FC = () => {
             <PlusOutlined /> 新建
           </Button>,
         ]}
-        request={rule}
+        request={getJob}
         columns={columns}
         expandable={{
+          expandedRowRender,
           childrenColumnName: 'pipelines', // 指定子节点的字段名
           defaultExpandAllRows: true, // 默认展开所有行（可选）
         }}
