@@ -24,6 +24,28 @@ const genList = (current: number, pageSize: number) => {
       updatedAt: new Date(),
       createdAt: new Date(),
       progress: Math.ceil(Math.random() * 100),
+      pipelines:[
+        {
+          name: '预检查',
+          action: "preCheck",
+          owner: 'sqc',
+          desc: '检测前提条件是否满足',
+          status: 'success',
+          reason:'',
+          createdAt:new Date(),
+          updatedAt: new Date()
+        },
+        {
+          name: '预检查',
+          action: "preCheck",
+          owner: 'sqc',
+          desc: '检测前提条件是否满足',
+          status: 'success',
+          reason: '',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
     });
   }
   tableListDataSource.reverse();

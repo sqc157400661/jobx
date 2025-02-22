@@ -209,6 +209,10 @@ const TableList: React.FC = () => {
         ]}
         request={rule}
         columns={columns}
+        expandable={{
+          childrenColumnName: 'pipelines', // 指定子节点的字段名
+          defaultExpandAllRows: true, // 默认展开所有行（可选）
+        }}
         // rowSelection={{
         //   onChange: (_, selectedRows) => {
         //     setSelectedRows(selectedRows);

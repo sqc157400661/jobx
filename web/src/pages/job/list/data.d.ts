@@ -11,6 +11,18 @@ export type TableListItem = {
   updatedAt: Date;
   createdAt: Date;
   progress: number;
+  pipelines: Pipeline[];
+};
+
+export type Pipeline = {
+  name: string;
+  action: string;
+  owner: string;
+  desc: string;
+  reason: string;
+  status: string;
+  updatedAt: Date;
+  createdAt: Date;
 };
 
 export type TableListPagination = {
