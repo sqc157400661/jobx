@@ -92,6 +92,10 @@ const TableList: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
+
+  // log
+  const [logVisible, setLogVisible] = useState(false);
+  const [logContent, setLogContent] = useState('');
   /** 国际化配置 */
 
   const columns: ProColumns<TableListItem>[] = [
@@ -213,7 +217,12 @@ const TableList: React.FC = () => {
       render: () => [
         <a key="Input">入参</a>,
         <a key="output">出参</a>,
-        <a key="log">日志</a>,
+        <a key="log" onClick={() => {
+          // 模拟获取日志内容
+          const log = `2023-10-01 12:00:00 [INFO] Starting server...\n2023-10-01 12:00:05 [INFO] Server started successfully.\n`;
+          setLogContent(log);
+          setLogVisible(true);
+        }}>日志</a>,
         <a key="retry">重试</a>,
         <a key="log">跳过</a>,
         <a key="discard">废弃</a>,
@@ -367,7 +376,25 @@ const TableList: React.FC = () => {
           />
         )}
       </Drawer>
-    </PageContainer>
+
+      // log drawer
+      <Drawer
+        title="日志详情"
+        placement="right"
+        onClose={() => {
+          setLogVisible(false);
+          setLogContent('');
+        }}
+        open={logVisible}
+        width={600}
+        closable={false}
+      >
+        <pre style={{ backgroundColor: '#000', color: '#fff', padding: '16px', borderRadius: '4px' }}>
+          {logContent}
+        </pre>
+    </Drawer>
+
+</PageContainer>
   );
 };
 
