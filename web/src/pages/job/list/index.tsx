@@ -194,18 +194,6 @@ const TableList: React.FC = () => {
       dataIndex: 'name',
     },
     {
-      title: '操作',
-      dataIndex: 'action',
-    },
-    {
-      title: '所有者',
-      dataIndex: 'owner',
-    },
-    {
-      title: '描述',
-      dataIndex: 'desc',
-    },
-    {
       title: '原因',
       dataIndex: 'reason',
     },
@@ -217,6 +205,19 @@ const TableList: React.FC = () => {
       title: '更新时间',
       dataIndex: 'updatedAt',
       valueType: 'dateTime',
+    },
+    {
+      title: '操作',
+      key: 'operation',
+      valueType: 'option',
+      render: () => [
+        <a key="Input">入参</a>,
+        <a key="output">出参</a>,
+        <a key="log">日志</a>,
+        <a key="retry">重试</a>,
+        <a key="log">跳过</a>,
+        <a key="discard">废弃</a>,
+      ],
     },
   ];
 
@@ -257,8 +258,6 @@ const TableList: React.FC = () => {
         columns={columns}
         expandable={{
           expandedRowRender,
-          childrenColumnName: 'pipelines', // 指定子节点的字段名
-          defaultExpandAllRows: true, // 默认展开所有行（可选）
         }}
         // rowSelection={{
         //   onChange: (_, selectedRows) => {
