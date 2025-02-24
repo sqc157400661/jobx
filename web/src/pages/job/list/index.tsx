@@ -13,6 +13,7 @@ import { Button, Drawer, Input, message } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
+import ReactJson from 'react-json-view';
 import type { TableListItem, TableListPagination,Pipeline } from './data';
 import { addRule, removeRule, getJob, updateRule } from './service';
 /**
@@ -88,14 +89,19 @@ const TableList: React.FC = () => {
   /** 分布更新窗口的弹窗 */
 
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
-  const [showDetail, setShowDetail] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
 
-  // log
-  const [logVisible, setLogVisible] = useState(false);
+  // drawer
+  const [showDrawerDetail, setShowDrawerDetail] = useState<boolean>(false);
+  const [drawerContentType, setDrawerContentType] = useState<'detail' | 'log' | 'json'>('detail');
+  const [jsonData, setJsonData] = useState(null);
   const [logContent, setLogContent] = useState('');
+  const [drawerConfig, setDrawerConfig] = useState<{ title: string; width: number }>({
+    title: '默认标题',
+    width: 600,
+  });
   /** 国际化配置 */
 
   const columns: ProColumns<TableListItem>[] = [
@@ -108,7 +114,9 @@ const TableList: React.FC = () => {
           <a
             onClick={() => {
               setCurrentRow(entity);
-              setShowDetail(true);
+              setShowDrawerDetail(true);
+              setDrawerConfig({title: '查看规则', width: 600});
+              setDrawerContentType('detail');
             }}
           >
             {dom}
@@ -215,13 +223,29 @@ const TableList: React.FC = () => {
       key: 'operation',
       valueType: 'option',
       render: () => [
-        <a key="Input">入参</a>,
-        <a key="output">出参</a>,
+        <a key="Input" onClick={() => {
+          // 模拟获取日志内容
+          const mockJson = `{"name": "John", "age": 30, "city": "New York"}`;
+          setJsonData(JSON.parse(mockJson));
+          setShowDrawerDetail(true);
+          setDrawerContentType('json');
+          setDrawerConfig({title: '查看入参', width: 600});
+        }}>入参</a>,
+        <a key="output" onClick={() => {
+          // 模拟获取日志内容
+          const mockJson = `{"name": "John", "age": 30, "city": "New York"}`;
+          setJsonData(JSON.parse(mockJson));
+          setShowDrawerDetail(true);
+          setDrawerContentType('json');
+          setDrawerConfig({title: '查看出参', width: 600});
+        }}>出参</a>,
         <a key="log" onClick={() => {
           // 模拟获取日志内容
           const log = `2023-10-01 12:00:00 [INFO] Starting server...\n2023-10-01 12:00:05 [INFO] Server started successfully.\n`;
           setLogContent(log);
-          setLogVisible(true);
+          setShowDrawerDetail(true);
+          setDrawerContentType('log');
+          setDrawerConfig({title: '查看日志', width: 600});
         }}>日志</a>,
         <a key="retry">重试</a>,
         <a key="log">跳过</a>,
@@ -241,6 +265,38 @@ const TableList: React.FC = () => {
         pagination={false}
       />
     );
+  };
+
+  /** 根据 drawerContentType 渲染不同的内容 */
+  const renderDrawerContent = () => {
+    switch (drawerContentType) {
+      case 'detail':
+        return (
+          currentRow?.name && (
+            <ProDescriptions<TableListItem>
+              column={2}
+              title={currentRow?.name}
+              request={async () => ({
+                data: currentRow || {},
+              })}
+              params={{
+                id: currentRow?.name,
+              }}
+              columns={columns as ProDescriptionsItemProps<TableListItem>[]}
+            />
+          )
+        );
+      case 'log':
+        return (
+          <pre style={{ backgroundColor: '#000', color: '#fff', padding: '16px', borderRadius: '4px' }}>
+            {logContent}
+          </pre>
+        );
+      case 'json':
+        return <ReactJson src={jsonData || {}} theme="apathy" />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -354,45 +410,18 @@ const TableList: React.FC = () => {
       />
 
       <Drawer
-        width={600}
-        open={showDetail}
+        width={drawerConfig.width}
+        title={drawerConfig.title}
+        open={showDrawerDetail}
         onClose={() => {
           setCurrentRow(undefined);
-          setShowDetail(false);
-        }}
-        closable={false}
-      >
-        {currentRow?.name && (
-          <ProDescriptions<TableListItem>
-            column={2}
-            title={currentRow?.name}
-            request={async () => ({
-              data: currentRow || {},
-            })}
-            params={{
-              id: currentRow?.name,
-            }}
-            columns={columns as ProDescriptionsItemProps<TableListItem>[]}
-          />
-        )}
-      </Drawer>
-
-      // log drawer
-      <Drawer
-        title="日志详情"
-        placement="right"
-        onClose={() => {
-          setLogVisible(false);
+          setShowDrawerDetail(false);
           setLogContent('');
         }}
-        open={logVisible}
-        width={600}
         closable={false}
       >
-        <pre style={{ backgroundColor: '#000', color: '#fff', padding: '16px', borderRadius: '4px' }}>
-          {logContent}
-        </pre>
-    </Drawer>
+        {renderDrawerContent()}
+      </Drawer>
 
 </PageContainer>
   );
