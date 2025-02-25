@@ -9,7 +9,7 @@ import {
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Input, message } from 'antd';
+import { Button, Drawer, Input, message,Modal } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
@@ -102,6 +102,12 @@ const TableList: React.FC = () => {
     title: '默认标题',
     width: 600,
   });
+  // model
+  const [visibleJsonModel, setVisibleJsonModel] = useState(false);
+  const [modelConfig, setModelConfig] = useState<{ title: string; width: number }>({
+    title: '重试操作',
+    width: 800,
+  });
   /** 国际化配置 */
 
   const columns: ProColumns<TableListItem>[] = [
@@ -130,11 +136,11 @@ const TableList: React.FC = () => {
       valueType: 'textarea',
     },
     {
-      title: '服务调用次数',
+      title: '进度',
       dataIndex: 'callNo',
       sorter: true,
       hideInForm: true,
-      renderText: (val: string) => `${val}万`,
+      renderText: (val: string) => `${val}/10`,
     },
     {
       title: '状态',
@@ -142,7 +148,7 @@ const TableList: React.FC = () => {
       hideInForm: true,
       valueEnum: {
         0: {
-          text: '关闭',
+          text: '废弃',
           status: 'Default',
         },
         1: {
@@ -150,7 +156,7 @@ const TableList: React.FC = () => {
           status: 'Processing',
         },
         2: {
-          text: '已上线',
+          text: '成功',
           status: 'Success',
         },
         3: {
@@ -160,7 +166,7 @@ const TableList: React.FC = () => {
       },
     },
     {
-      title: '上次调度时间',
+      title: '调度时间',
       sorter: true,
       dataIndex: 'updatedAt',
       valueType: 'dateTime',
@@ -190,10 +196,10 @@ const TableList: React.FC = () => {
             setCurrentRow(record);
           }}
         >
-          配置
+          暂停
         </a>,
         <a key="subscribeAlert" href="https://procomponents.ant.design/">
-          订阅警报
+          回滚
         </a>,
       ],
     },
@@ -247,7 +253,12 @@ const TableList: React.FC = () => {
           setDrawerContentType('log');
           setDrawerConfig({title: '查看日志', width: 600});
         }}>日志</a>,
-        <a key="retry">重试</a>,
+        <a key="retry" onClick={() => {
+          // 模拟获取日志内容
+          const mockJson = `{"name": "John", "age": 30, "city": "New York"}`;
+          setJsonData(JSON.parse(mockJson));
+          setVisibleJsonModel(true);
+        }}>重试</a>,
         <a key="log">跳过</a>,
         <a key="discard">废弃</a>,
       ],
@@ -297,6 +308,12 @@ const TableList: React.FC = () => {
       default:
         return null;
     }
+  };
+
+  // 提交修改后的 JSON 数据
+  const handleRetry = () => {
+    console.log('提交的JSON数据:', jsonData);
+    setVisibleJsonModel(false);
   };
 
   return (
@@ -422,6 +439,35 @@ const TableList: React.FC = () => {
       >
         {renderDrawerContent()}
       </Drawer>
+
+      {/* 模态框 */}
+      <Modal
+        title={modelConfig.title}
+        open={visibleJsonModel}
+        onCancel={() => {
+          setVisibleJsonModel(false);
+        }}
+        onOk={handleRetry}
+        width={modelConfig.width}
+      >
+        {/* JSON 编辑器 */}
+        <ReactJson
+          src={jsonData} // 数据源
+          onEdit={(edit) => {
+            setJsonData(edit.updated_src); // 更新 JSON 数据
+          }}
+          onAdd={(add) => {
+            setJsonData(add.updated_src); // 添加新字段
+          }}
+          onDelete={(del) => {
+            setJsonData(del.updated_src); // 删除字段
+          }}
+          name={false} // 不显示根节点名称
+          displayDataTypes={false} // 不显示数据类型
+          enableClipboard={false} // 禁用剪贴板功能
+          collapsed={false} // 默认展开所有节点
+        />
+      </Modal>
 
 </PageContainer>
   );
