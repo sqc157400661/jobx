@@ -11,7 +11,7 @@ func GetEngine() (*xorm.Engine, error) {
 		Host:     "localhost",
 		User:     "root",
 		Password: "157400661",
-		DB:       "pgpaas",
+		DB:       "task_center",
 		Port:     3306,
 	}, false)
 	if err != nil {
