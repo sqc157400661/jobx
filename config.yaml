@@ -1,0 +1,18 @@
+runMode: debug
+enableManager: false
+enableReqLog: true
+server:
+  addr: http://127.0.0.1:8001
+  port: 8001
+  readTimeout: 10000
+  writeTimeout: 10000
+log:
+  logDir: ./logs/
+mysql:
+    host: localhost
+    port: 3306
+    db: task_center
+    user: root
+    passwd: 157400661
+corsDomains:
+  - "https://localhost:8000"

@@ -1,4 +1,4 @@
-package v1
+package biz
 
 import (
 	"github.com/sqc157400661/jobx/pkg/dao"
