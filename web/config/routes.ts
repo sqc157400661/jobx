@@ -111,6 +111,11 @@ export default [
     ],
   },
   // {
+  //   path: '/nav',
+  //   name: '网址导航',
+  //   component: './nav',
+  // },
+  // {
   //   path: '/list',
   //   icon: 'table',
   //   name: 'list',

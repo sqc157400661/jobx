@@ -9,7 +9,8 @@ const genList = (current: number, pageSize: number) => {
   for (let i = 0; i < pageSize; i += 1) {
     const index = (current - 1) * 10 + i;
     tableListDataSource.push({
-      key: index,
+      id: index,
+      root_id:index,
       disabled: i % 6 === 0,
       href: 'https://ant.design',
       avatar: [
@@ -20,9 +21,16 @@ const genList = (current: number, pageSize: number) => {
       owner: '曲丽丽',
       desc: '这是一段描述',
       callNo: Math.floor(Math.random() * 10),
+      biz_id:'',
+      locker:'test',
+      tenant:'',
+      phase:'',
+      reason:'',
+      input:{},
+      env: {},
       status: (Math.floor(Math.random() * 10) % 4).toString(),
-      updatedAt: new Date(),
-      createdAt: new Date(),
+      create_at: new Date(),
+      update_at: new Date(),
       progress: Math.ceil(Math.random() * 100),
       pipelines:[
         {
@@ -137,13 +145,14 @@ function postRule(req: Request, res: Response, u: string, b: Request) {
   switch (req.method) {
     /* eslint no-case-declarations:0 */
     case 'DELETE':
-      tableListDataSource = tableListDataSource.filter((item) => key.indexOf(item.key) === -1);
+      tableListDataSource = tableListDataSource.filter((item) => key.indexOf(item.id) === -1);
       break;
     case 'POST':
       (() => {
         const i = Math.ceil(Math.random() * 10000);
         const newRule = {
-          key: tableListDataSource.length,
+          id: tableListDataSource.length,
+          root_id: tableListDataSource.length,
           href: 'https://ant.design',
           avatar: [
             'https://gw.alipayobjects.com/zos/rmsportal/eeHMaZBwmTvLdIwMfBpg.png',
@@ -153,9 +162,17 @@ function postRule(req: Request, res: Response, u: string, b: Request) {
           owner: '曲丽丽',
           desc,
           callNo: Math.floor(Math.random() * 10),
+          biz_id:'',
+          locker:'test',
+          tenant:'',
+          phase:'',
+          reason:'',
+          input:{},
+          env: {},
+          pipelines:[],
           status: (Math.floor(Math.random() * 10) % 2).toString(),
-          updatedAt: new Date(),
-          createdAt: new Date(),
+          create_at: new Date(),
+          update_at: new Date(),
           progress: Math.ceil(Math.random() * 100),
         };
         tableListDataSource.unshift(newRule);
@@ -167,7 +184,7 @@ function postRule(req: Request, res: Response, u: string, b: Request) {
       (() => {
         let newRule = {};
         tableListDataSource = tableListDataSource.map((item) => {
-          if (item.key === key) {
+          if (item.id === key) {
             newRule = { ...item, desc, name };
             return { ...item, desc, name };
           }

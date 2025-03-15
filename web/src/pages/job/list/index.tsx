@@ -71,7 +71,7 @@ const handleRemove = async (selectedRows: TableListItem[]) => {
 
   try {
     await removeRule({
-      key: selectedRows.map((row) => row.key),
+      key: selectedRows.map((row) => row.id),
     });
     hide();
     message.success('删除成功，即将刷新');
@@ -112,9 +112,9 @@ const TableList: React.FC = () => {
 
   const columns: ProColumns<TableListItem>[] = [
     {
-      title: '规则名称',
+      title: '任务名称',
       dataIndex: 'name',
-      tip: '规则名称是唯一的 key',
+      tip: '任务名称',
       render: (dom, entity) => {
         return (
           <a
@@ -136,11 +136,14 @@ const TableList: React.FC = () => {
       valueType: 'textarea',
     },
     {
-      title: '进度',
-      dataIndex: 'callNo',
-      sorter: true,
+      title: '执行人',
+      dataIndex: 'owner',
       hideInForm: true,
-      renderText: (val: string) => `${val}/10`,
+    },
+    {
+      title: '执行服务器',
+      dataIndex: 'locker',
+      hideInForm: true,
     },
     {
       title: '状态',
@@ -163,12 +166,24 @@ const TableList: React.FC = () => {
           text: '异常',
           status: 'Error',
         },
+        'fail': {
+          text: '异常',
+          status: 'Error',
+        },
+        "pending": {
+          text: '运行中',
+          status: 'Processing',
+        },
+        'success': {
+          text: '成功',
+          status: 'Success',
+        },
       },
     },
     {
-      title: '调度时间',
+      title: '结束时间',
       sorter: true,
-      dataIndex: 'updatedAt',
+      dataIndex: 'update_at',
       valueType: 'dateTime',
       renderFormItem: (item, { defaultRender, ...rest }, form) => {
         const status = form.getFieldValue('status');
@@ -321,7 +336,7 @@ const TableList: React.FC = () => {
       <ProTable<TableListItem, TableListPagination>
         headerTitle="查询表格"
         actionRef={actionRef}
-        rowKey="key"
+        rowKey="id"
         search={{
           labelWidth: 120,
         }}

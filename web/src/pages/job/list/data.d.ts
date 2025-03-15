@@ -1,5 +1,6 @@
 export type TableListItem = {
-  key: number;
+  id: number;
+  root_id: number;
   disabled?: boolean;
   href: string;
   avatar: string;
@@ -7,9 +8,16 @@ export type TableListItem = {
   owner: string;
   desc: string;
   callNo: number;
+  biz_id: string;
+  locker: string;
+  tenant: string;
+  phase: string;
+  reason:string;
+  input:object;
+  env:object;
   status: string;
-  updatedAt: Date;
-  createdAt: Date;
+  create_at: Date;
+  update_at: Date;
   progress: number;
   pipelines: Pipeline[];
 };

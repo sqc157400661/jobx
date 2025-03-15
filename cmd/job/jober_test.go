@@ -3,22 +3,58 @@ package job
 import (
 	"fmt"
 	"github.com/sqc157400661/jobx/cmd/service"
-	"github.com/sqc157400661/jobx/pkg/dao"
-	"github.com/sqc157400661/jobx/pkg/options"
+	"github.com/sqc157400661/jobx/hack/demo"
 	"github.com/sqc157400661/jobx/pkg/providers"
-	"github.com/sqc157400661/jobx/test"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
+
+	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/options"
+	"github.com/sqc157400661/jobx/test"
 )
 
+func TestDemoAutoSuspendJob(t *testing.T) {
+	var err error
+	input := options.JobInput(map[string]interface{}{
+		"action": "Suspend",
+	})
+	// test multiple pipeline add
+	err = NewJober("AutoSuspend", "sqc", "CDWInternal", input).
+		AddPipeline("QueryIdlesMetric", "QueryIdlesMetric").
+		AddPipeline("CheckIdle", "CheckIdle").
+		AddPipeline("PreVwCheckTasker", "PreVwCheck").
+		AddPipeline("LockVwStatus", "LockVwStatusInDB").
+		AddPipeline("UpdateK8sResource", "UpdateK8sResource").
+		AddPipeline("wait", "delay", options.JobInput(map[string]interface{}{"time": 5 * time.Second})).
+		AddPipeline("CheckK8sResource", "CheckK8sResource").
+		AddPipeline("UpdateVwStatusInDB", "MarkVwStatusInDB").
+		Exec()
+	assert.NoError(t, err)
+}
+
+func TestDemoAutoResumeJob(t *testing.T) {
+	var err error
+	input := options.JobInput(map[string]interface{}{
+		"action": "Resume",
+	})
+	// test multiple pipeline add
+	err = NewJober("AutoSuspend", "sqc", "CDWInternal", input).
+		AddPipeline("QueryCnchPendingTask", "QueryPendingTask").
+		AddPipeline("PreVwCheckTasker", "PreVwCheck").
+		AddPipeline("LockVwStatus", "LockVwStatusInDB").
+		AddPipeline("UpdateK8sResource", "UpdateK8sResource").
+		AddPipeline("wait", "delay", options.JobInput(map[string]interface{}{"time": 5 * time.Second})).
+		AddPipeline("CheckK8sResource", "CheckK8sResource").
+		AddPipeline("UpdateVwStatusInDB", "MarkVwStatusInDB").
+		Exec()
+	assert.NoError(t, err)
+}
+
 func TestJober(t *testing.T) {
-	engine, err := test.GetEngine()
-	require.NoError(t, err)
-	jobFlow, err := service.NewJobFlow("test_id_0", engine)
-	require.NoError(t, err)
-	_ = jobFlow.Register(&providers.DemoTasker{}, &providers.Demo2Tasker{})
-	require.NoError(t, err)
+	var err error
 	// test multiple pipeline add
 	err = NewJober("jober1", "sqc", "").
 		AddPipeline("task_1", "demo").
@@ -86,4 +122,25 @@ func TestWaitJob(t *testing.T) {
 	err = WaitJob(400039, 10)
 	fmt.Println(err, 343454534)
 
+}
+
+func init() {
+	engine, err := test.GetEngine()
+	if err != nil {
+		panic(err)
+	}
+	dao.JFDb = engine
+	jobFlow, _ := service.NewJobFlow("sqc_test_compute", engine)
+	_ = jobFlow.Register(
+		&providers.DemoTasker{},
+		&providers.Demo2Tasker{},
+		&demo.CheckIdle{},
+		&demo.MarkVwStatusInDB{},
+		&demo.QueryCnchPendingTask{},
+		&demo.MarkVwPendingStatusInDB{},
+		&demo.QueryMetric{},
+		&demo.UpdateK8sResource{},
+		&demo.UpdateK8sResourceCheckLoop{},
+		&demo.PreVwCheckTasker{},
+	)
 }

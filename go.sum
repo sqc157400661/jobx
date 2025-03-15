@@ -351,6 +351,8 @@ github.com/sqc157400661/helper v0.0.9 h1:e84jNuZGi7sohb03d7Y6THwrBnYLpFuASuI2pK8
 github.com/sqc157400661/helper v0.0.9/go.mod h1:jCxDimUV4Gl+57au2ASkMyTspe0vh85JoHc2c83Qwgc=
 github.com/sqc157400661/util v0.0.5 h1:yLj1G+kwK80It6WWVkOXahJAPHehVY/xBnnXzM3huhw=
 github.com/sqc157400661/util v0.0.5/go.mod h1:CinFHzQalPzyUf3xSqGTJk9+MuGaFLyavBvpzGvwVAU=
+github.com/sqc157400661/util v0.0.10 h1:JIGN086ElxoM3oO/7T0Ep91Uzho/bgJkT2M4nIwTsMo=
+github.com/sqc157400661/util v0.0.10/go.mod h1:CinFHzQalPzyUf3xSqGTJk9+MuGaFLyavBvpzGvwVAU=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

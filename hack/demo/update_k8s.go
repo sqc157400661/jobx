@@ -1,51 +1,26 @@
 package demo
 
-import (
-	"errors"
-)
+import "fmt"
 
-type DemoTasker struct {
+type UpdateK8sResource struct {
+	Provider
 }
 
-func (t *DemoTasker) Name() string {
-	return "demo"
+func (t *UpdateK8sResource) Name() string {
+	return "UpdateK8sResource"
 }
 
-func (t *DemoTasker) Input(i Inputer) (err error) {
+func (t *UpdateK8sResource) Output() (ctx map[string]interface{}, res map[string]interface{}, err error) {
 	return
 }
-
-func (t *DemoTasker) Output() (ctx map[string]interface{}, res map[string]interface{}, err error) {
-	return
-}
-func (t *DemoTasker) Run(nu int) (err error) {
-	return
-}
-
-func (t *DemoTasker) Desc() string {
-	return "用于测试的样例任务"
-}
-
-type Demo2Tasker struct {
-}
-
-func (t *Demo2Tasker) Name() string {
-	return "demo2"
-}
-
-func (t *Demo2Tasker) Input(i Inputer) (err error) {
-	return
-}
-
-func (t *Demo2Tasker) Output() (ctx map[string]interface{}, res map[string]interface{}, err error) {
-	res = map[string]interface{}{
-		"sds": 12345,
-	}
-	ctx = map[string]interface{}{
-		"uid": "12334534543",
+func (t *UpdateK8sResource) Run(nu int) (err error) {
+	for _, vw := range t.input.VWsQueue {
+		t.logger.Info(fmt.Sprintf("Start update Vw:%s", vw))
+		t.logger.Info(fmt.Sprintf("Start update Vw:%s suncces", vw))
 	}
 	return
 }
-func (t *Demo2Tasker) Run(nu int) (err error) {
-	return errors.New("run err for demo2")
+
+func (t *UpdateK8sResource) Desc() string {
+	return "更新对应的K8s VW资源信息"
 }

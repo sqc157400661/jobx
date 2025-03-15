@@ -2,20 +2,14 @@ package base
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sqc157400661/helper/api/common"
 	"github.com/sqc157400661/helper/api/response"
 	"go.uber.org/zap"
-	"net/http"
 )
-
-const UserKey = "user"
-const IsStaff = "isStaff"
-
-type RequestIface interface {
-	SetEngine(engine string)
-}
 
 type Api struct {
 	Context *gin.Context

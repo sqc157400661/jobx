@@ -19,12 +19,28 @@ export async function getJob(
     /** 列表的内容总数 */
     total?: number;
     success?: boolean;
-  }>('/api/job', {
+  }>('/api/v1/job/list', {
     method: 'GET',
     params: {
       ...params,
     },
     ...(options || {}),
+  }).then((response) => {
+    // 将接口返回的数据格式转换为 Ant Design 表格所需的格式
+    if (response.status === 'success') {
+      return {
+        success: true,
+        data: response.data.list, // 列表数据
+        total: response.data.count, // 总条数
+      };
+    } else {
+      // 如果接口返回的状态不是 success，返回一个错误格式
+      return {
+        success: false,
+        data: [],
+        total: 0,
+      };
+    }
   });
 }
 
