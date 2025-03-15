@@ -1,7 +1,7 @@
 // @ts-ignore
 /* eslint-disable */
 import { request } from '@umijs/max';
-import { TableListItem } from './data';
+import {Pipeline, TableListItem} from './data';
 
 /** 获取Job列表 GET /api/job */
 export async function getJob(
@@ -68,5 +68,40 @@ export async function removeRule(data: { key: number[] }, options?: { [key: stri
     data,
     method: 'DELETE',
     ...(options || {}),
+  });
+}
+
+
+export async function getJobPipelines(
+  params: {
+    jobId?: number;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<{
+    data: Pipeline[];
+    /** 列表的内容总数 */
+    success?: boolean;
+  }>('/api/v1/job/steps', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  }).then((response) => {
+    // 将接口返回的数据格式转换为 Ant Design 表格所需的格式
+    if (response.status === 'success') {
+      return {
+        success: true,
+        data: response.data,
+      };
+    } else {
+      // 如果接口返回的状态不是 success，返回一个错误格式
+      return {
+        success: false,
+        data: [],
+        total: 0,
+      };
+    }
   });
 }

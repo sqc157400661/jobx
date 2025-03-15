@@ -1,5 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
+import moment from 'moment';
 import {
   FooterToolbar,
   ModalForm,
@@ -9,13 +10,13 @@ import {
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Input, message,Modal } from 'antd';
+import { Button, Drawer, Input, message,Modal,Tooltip } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
 import ReactJson from 'react-json-view';
 import type { TableListItem, TableListPagination,Pipeline } from './data';
-import { addRule, removeRule, getJob, updateRule } from './service';
+import { addRule, removeRule, getJob, updateRule,getJobPipelines } from './service';
 /**
  * 添加节点
  *
@@ -108,6 +109,30 @@ const TableList: React.FC = () => {
     title: '重试操作',
     width: 800,
   });
+
+  // 存储所有二级数据（按主表行ID索引）
+  const [subTableData, setSubTableData] = useState<Record<number, Pipeline[]>>({});
+  // 加载状态
+  const [loadingSubTableIds, setLoadingSubTableIds] = useState<number[]>([]);
+
+  // 修改后的展开事件处理
+  const handleExpand = async (expanded: boolean, record: TableListItem) => {
+    if (expanded) { // 只要展开就请求，无论是否已有数据
+      try {
+        setLoadingSubTableIds((prev) => [...prev, record.id]);
+        const response = await getJobPipelines({jobId:record.id});
+        setSubTableData((prev) => ({
+          ...prev,
+          [record.id]: response.data, // 总是覆盖旧数据
+        }));
+      } catch (error) {
+        console.error('Failed to load pipelines:', error);
+      } finally {
+        setLoadingSubTableIds((prev) => prev.filter((id) => id !== record.id));
+      }
+    }
+  };
+
   /** 国际化配置 */
 
   const columns: ProColumns<TableListItem>[] = [
@@ -185,18 +210,10 @@ const TableList: React.FC = () => {
       sorter: true,
       dataIndex: 'update_at',
       valueType: 'dateTime',
-      renderFormItem: (item, { defaultRender, ...rest }, form) => {
-        const status = form.getFieldValue('status');
-
-        if (`${status}` === '0') {
-          return false;
-        }
-
-        if (`${status}` === '3') {
-          return <Input {...rest} placeholder="请输入异常原因！" />;
-        }
-
-        return defaultRender(item);
+      render: (_, record) => {
+        // 将秒级时间戳转为毫秒
+        const timestamp = record.update_at * 1000;
+        return moment(timestamp).format('YYYY-MM-DD HH:mm:ss');
       },
     },
     {
@@ -229,6 +246,21 @@ const TableList: React.FC = () => {
     {
       title: '原因',
       dataIndex: 'reason',
+      render: (text) => {
+        if (!text) return '-'; // 处理空值
+
+        const maxLength = 30;
+        const isOverflow = text.length > maxLength;
+        const truncatedText = isOverflow ? `${text.slice(0, maxLength)}...` : text;
+
+        return isOverflow ? (
+          <Tooltip title={text}>
+            <span style={{ cursor: 'pointer' }}>{truncatedText}</span>
+          </Tooltip>
+        ) : (
+          <span>{truncatedText}</span>
+        );
+      },
     },
     {
       title: '状态',
@@ -236,8 +268,13 @@ const TableList: React.FC = () => {
     },
     {
       title: '更新时间',
-      dataIndex: 'updatedAt',
+      dataIndex: 'update_at',
       valueType: 'dateTime',
+      render: (_, record) => {
+        // 将秒级时间戳转为毫秒
+        const timestamp = record.update_at * 1000;
+        return moment(timestamp).format('YYYY-MM-DD HH:mm:ss');
+      },
     },
     {
       title: '操作',
@@ -281,13 +318,16 @@ const TableList: React.FC = () => {
   ];
 
   const expandedRowRender = (record: TableListItem) => {
+    const pipelines = subTableData[record.id] || [];
+    const loading = loadingSubTableIds.includes(record.id);
     return (
       <ProTable
         columns={pipelineColumns}
         headerTitle={false}
         search={false}
         options={false}
-        dataSource={record.pipelines}
+        dataSource={pipelines}
+        loading={loading}
         pagination={false}
       />
     );
@@ -355,6 +395,7 @@ const TableList: React.FC = () => {
         columns={columns}
         expandable={{
           expandedRowRender,
+          onExpand: handleExpand, // 监听展开事件
         }}
         // rowSelection={{
         //   onChange: (_, selectedRows) => {

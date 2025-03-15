@@ -16,12 +16,12 @@ type PipelineTask struct {
 	Retry    int    `gorm:"column:retry" json:"retry" xorm:"retry"`            // 允许自动重试次数
 	Retries  int8   `gorm:"column:retries" json:"retries" xorm:"retries"`      // 已经自动重试的次数
 	State    `xorm:"extends"`
-	Input    map[string]interface{} `gorm:"column:input" json:"input" xorm:"input"`          // 入参
-	Output   map[string]interface{} `gorm:"column:output" json:"output" xorm:"output"`       // 出参
-	Env      map[string]interface{} `gorm:"column:env" json:"env" xorm:"env"`                // 配置信息
-	Context  map[string]interface{} `gorm:"column:context" json:"context" xorm:"context"`    // 上下文参数
-	CreateAt int                    `gorm:"column:create_at" json:"createAt" xorm:"created"` // 创建时间
-	UpdateAt int                    `gorm:"column:update_at" json:"updateAt" xorm:"updated"` // 更新时间
+	Input    map[string]interface{} `gorm:"column:input" json:"input" xorm:"input"`           // 入参
+	Output   map[string]interface{} `gorm:"column:output" json:"output" xorm:"output"`        // 出参
+	Env      map[string]interface{} `gorm:"column:env" json:"env" xorm:"env"`                 // 配置信息
+	Context  map[string]interface{} `gorm:"column:context" json:"context" xorm:"context"`     // 上下文参数
+	CreateAt int                    `gorm:"column:create_at" json:"create_at" xorm:"created"` // 创建时间
+	UpdateAt int                    `gorm:"column:update_at" json:"update_at" xorm:"updated"` // 更新时间
 }
 
 func (t *PipelineTask) TableName() string {
