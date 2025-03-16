@@ -12,7 +12,7 @@ func (t *QueryMetric) Name() string {
 
 func (t *QueryMetric) Output() (ctx map[string]interface{}, res map[string]interface{}, err error) {
 	ctx = map[string]interface{}{
-		"idlesVWs": []string{
+		"vws": []string{
 			"vw-21000334-test-01",
 			"vw-21000334-test-03",
 			"vw-21000334-test-06",

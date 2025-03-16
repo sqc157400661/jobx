@@ -74,7 +74,7 @@ export async function removeRule(data: { key: number[] }, options?: { [key: stri
 
 export async function getJobPipelines(
   params: {
-    jobId?: number;
+    job_id?: number;
   },
   options?: { [key: string]: any },
 ) {
@@ -103,5 +103,15 @@ export async function getJobPipelines(
         total: 0,
       };
     }
+  });
+}
+
+
+export async function getLog(stepId: number) {
+  return request('/api/v1/job/log', {
+    method: 'GET',
+    params: {
+      event_id: stepId,
+    },
   });
 }

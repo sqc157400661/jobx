@@ -16,7 +16,7 @@ import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
 import ReactJson from 'react-json-view';
 import type { TableListItem, TableListPagination,Pipeline } from './data';
-import { addRule, removeRule, getJob, updateRule,getJobPipelines } from './service';
+import { addRule, removeRule, getJob, updateRule,getJobPipelines,getLog } from './service';
 /**
  * 添加节点
  *
@@ -120,7 +120,7 @@ const TableList: React.FC = () => {
     if (expanded) { // 只要展开就请求，无论是否已有数据
       try {
         setLoadingSubTableIds((prev) => [...prev, record.id]);
-        const response = await getJobPipelines({jobId:record.id});
+        const response = await getJobPipelines({job_id:record.id});
         setSubTableData((prev) => ({
           ...prev,
           [record.id]: response.data, // 总是覆盖旧数据
@@ -280,30 +280,48 @@ const TableList: React.FC = () => {
       title: '操作',
       key: 'operation',
       valueType: 'option',
-      render: () => [
+      render: (_, record) => [
         <a key="Input" onClick={() => {
           // 模拟获取日志内容
-          const mockJson = `{"name": "John", "age": 30, "city": "New York"}`;
-          setJsonData(JSON.parse(mockJson));
+          // 优先使用 record.input，若不存在或为 null 则使用模拟数据
+          const finalData = record.input ?? JSON.parse(`{"name": "Fallback", "age": 25, "city": "Beijing"}`);
+          setJsonData(finalData);
           setShowDrawerDetail(true);
           setDrawerContentType('json');
           setDrawerConfig({title: '查看入参', width: 600});
         }}>入参</a>,
         <a key="output" onClick={() => {
           // 模拟获取日志内容
-          const mockJson = `{"name": "John", "age": 30, "city": "New York"}`;
-          setJsonData(JSON.parse(mockJson));
+          // 优先使用 record.output，若不存在或为 null 则使用模拟数据
+          const finalData = record.context ?? JSON.parse(`{"name": "Fallback", "age": 25, "city": "Beijing"}`);
+          setJsonData(finalData);
           setShowDrawerDetail(true);
           setDrawerContentType('json');
           setDrawerConfig({title: '查看出参', width: 600});
         }}>出参</a>,
-        <a key="log" onClick={() => {
-          // 模拟获取日志内容
-          const log = `2023-10-01 12:00:00 [INFO] Starting server...\n2023-10-01 12:00:05 [INFO] Server started successfully.\n`;
-          setLogContent(log);
-          setShowDrawerDetail(true);
-          setDrawerContentType('log');
-          setDrawerConfig({title: '查看日志', width: 600});
+        <a key="log" onClick={async () => {
+          try {
+            // 先发起请求获取日志
+            console.log(record)
+            const response = await getLog(record.id);
+
+            // 初始化默认日志内容
+            var log = `2023-10-01 12:00:00 [INFO] Starting server...\n2023-10-01 12:00:05 [INFO] Server started successfully.\n`;
+
+            // 如果接口返回有效数据则使用接口数据
+            if (response.data?.result?.length > 0) {
+              log = response.data.result;
+            }
+
+            // 更新状态
+            setLogContent(log);
+            setShowDrawerDetail(true);
+            setDrawerContentType('log');
+            setDrawerConfig({title: '查看日志', width: 600});
+          } catch (error) {
+            console.error('获取日志失败:', error);
+            // 可选：添加错误处理（如提示通知）
+          }
         }}>日志</a>,
         <a key="retry" onClick={() => {
           // 模拟获取日志内容

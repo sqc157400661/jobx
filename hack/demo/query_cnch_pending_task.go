@@ -10,7 +10,7 @@ func (t *QueryCnchPendingTask) Name() string {
 
 func (t *QueryCnchPendingTask) Output() (ctx map[string]interface{}, res map[string]interface{}, err error) {
 	ctx = map[string]interface{}{
-		"idlesVWs": []string{
+		"vws": []string{
 			"vw-21000334-test-01",
 		}}
 	return

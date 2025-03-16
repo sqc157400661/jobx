@@ -41,7 +41,7 @@ func TestDemoAutoResumeJob(t *testing.T) {
 		"action": "Resume",
 	})
 	// test multiple pipeline add
-	err = NewJober("AutoSuspend", "sqc", "CDWInternal", input).
+	err = NewJober("AutoResume", "sqc", "CDWInternal", input).
 		AddPipeline("QueryCnchPendingTask", "QueryPendingTask").
 		AddPipeline("PreVwCheckTasker", "PreVwCheck").
 		AddPipeline("LockVwStatus", "LockVwStatusInDB").
