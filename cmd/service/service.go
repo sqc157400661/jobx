@@ -112,7 +112,7 @@ func (jf *JobFlow) Start() {
 						}
 					}
 				case <-jf.stopChan:
-					err := jf.collector.Release()
+					err := jf.collector.ReleaseJob()
 					if err != nil {
 						klog.Error(err)
 					}

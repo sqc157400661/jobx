@@ -11,7 +11,7 @@ import (
 
 type Collector interface {
 	StealJob() (jobs []*dao.Job, err error)
-	Release() (err error)
+	ReleaseJob() (err error)
 }
 
 type DefaultCollector struct {
@@ -47,7 +47,7 @@ func (c *DefaultCollector) StealJob() (jobs []*dao.Job, err error) {
 	return
 }
 
-func (c *DefaultCollector) Release() (err error) {
+func (c *DefaultCollector) ReleaseJob() (err error) {
 	var jobs []dao.Job
 	err = c.engine.In("phase", []string{config.PhaseReady, config.PhaseRunning}).Where("locker=?", c.serverUid).Find(&jobs)
 	if err != nil {
@@ -55,7 +55,7 @@ func (c *DefaultCollector) Release() (err error) {
 	}
 	// 依次更新状态并解除锁定
 	for _, v := range jobs {
-		err = c.ReleaseJob(v.ID)
+		err = c.releaseByID(v.ID)
 		if err != nil {
 			err = errors.Wrapf(err, "uid:%s unlock err id:%d", c.serverUid, v.ID)
 			return
@@ -77,7 +77,7 @@ func (c *DefaultCollector) steal() (lockedNum int64, err error) {
 	return res.RowsAffected()
 }
 
-func (c *DefaultCollector) ReleaseJob(jobId int) (err error) {
+func (c *DefaultCollector) releaseByID(jobId int) (err error) {
 	_, err = c.engine.Exec(`update job set locker='',phase =?  where locker=? and id =?`,
 		config.PhaseReady, c.serverUid, jobId)
 	return
