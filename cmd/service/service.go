@@ -6,6 +6,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/sqc157400661/jobx/cmd/log"
 	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/collector"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
@@ -25,7 +26,7 @@ type JobFlow struct {
 	// Unique ID for JobFlow
 	uid       string
 	opts      options.Options
-	collector internal.Collector
+	collector collector.Collector
 	worker    internal.Worker
 	tracker   internal.Tracker
 	// worker stop signal
@@ -54,7 +55,7 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 	jf.opts = o
 	// task execution occupies a separate session connection
 	dao.JFDb = db
-	jf.collector = internal.NewDefaultCollector(jf.opts.PoolLen)
+	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.PoolLen)
 	jf.worker = internal.NewDefaultWorker(o.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker)
 	return
@@ -100,7 +101,7 @@ func (jf *JobFlow) Start() {
 				select {
 				case <-ticker.C:
 					// 这里去尝试获取资源并执行锁定
-					jobs, err := jf.collector.CollectByUID(jf.uid)
+					jobs, err := jf.collector.StealJob()
 					if err != nil {
 						klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
 					}
@@ -111,7 +112,7 @@ func (jf *JobFlow) Start() {
 						}
 					}
 				case <-jf.stopChan:
-					err := jf.collector.Release(jf.uid)
+					err := jf.collector.Release()
 					if err != nil {
 						klog.Error(err)
 					}
