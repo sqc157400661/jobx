@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/options"
@@ -77,8 +78,8 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 		Action: action,
 		Desc:   providers.GetDesc(action, o.Desc),
 		Pause:  o.Pause,
-		Input:  internal.UnsafeMergeMap(o.Input, j.Job.Input),
-		Env:    internal.UnsafeMergeMap(o.Env, j.Job.Env),
+		Input:  helper.UnsafeMergeMap(o.Input, j.Job.Input),
+		Env:    helper.UnsafeMergeMap(o.Env, j.Job.Env),
 		Retry:  o.Retry,
 		State: dao.State{
 			Phase:  config.PhaseReady,
@@ -105,8 +106,8 @@ func (j *Jober) AddJob(job *Jober) *Jober {
 	job.Job.BizID = "" // 子任务无效参数
 	job.Tokens = nil   // 子任务无效参数
 	job.Level = j.Level + 1
-	job.Job.Input = internal.UnsafeMergeMap(job.Job.Input, j.Job.Input)
-	job.Job.Env = internal.UnsafeMergeMap(job.Job.Env, j.Job.Env)
+	job.Job.Input = helper.UnsafeMergeMap(job.Job.Input, j.Job.Input)
+	job.Job.Env = helper.UnsafeMergeMap(job.Job.Env, j.Job.Env)
 	if job.Level > config.MaxJobLevel {
 		job.err = errors.New(errors.ParamError, "job level exceeds max limit")
 	}

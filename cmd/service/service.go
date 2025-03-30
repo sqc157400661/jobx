@@ -124,6 +124,12 @@ func (jf *JobFlow) Start() {
 	})
 }
 
+// AddJob add a job to local queue
+// todo
+func (jf *JobFlow) AddJob() {
+
+}
+
 func (jf *JobFlow) Quit() {
 	jf.stopOnce.Do(func() {
 		jf.worker.Quit()

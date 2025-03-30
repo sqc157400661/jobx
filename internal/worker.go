@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
@@ -108,9 +109,9 @@ func (w *DefaultWorker) process(pipeline *Pipeline) {
 			err = errors.New(fmt.Sprintf("not found taskProvider:%s", curTask.Action))
 			return
 		}
-		pipeCtx = UnsafeMergeMap(pipeCtx, curTask.Context)
+		pipeCtx = helper.UnsafeMergeMap(pipeCtx, curTask.Context)
 		// 传入相关参数
-		curTask.Input = UnsafeMergeMap(curTask.Input, pipeCtx)
+		curTask.Input = helper.UnsafeMergeMap(curTask.Input, pipeCtx)
 		curTask.Context = pipeCtx
 		err = curTask.Update()
 		if err != nil {
@@ -147,7 +148,7 @@ func (w *DefaultWorker) process(pipeline *Pipeline) {
 			err = errors.Wrapf(err, "taskProvider %s output err", task.Action)
 			return
 		}
-		pipeCtx = UnsafeMergeMap(pipeCtx, context)
+		pipeCtx = helper.UnsafeMergeMap(pipeCtx, context)
 		curTask.Context = pipeCtx
 		curTask.Output = output
 		if err = task.Succeed(); err != nil {

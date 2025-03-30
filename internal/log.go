@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/log"
 	"k8s.io/klog/v2"
@@ -10,68 +10,86 @@ import (
 	"time"
 )
 
+// loggerItem represents a single log entry in buffer
 type loggerItem struct {
 	eventID int
 	msg     string
 }
 
+// Logger handles buffered logging operations with periodic flushing
 type Logger struct {
-	maxLen      int // 最大的日志长度
-	maxSetSize  int // 处理集合的最大长度,即同时可记录的任务日志数量,超过刷盘
-	set         *log.LoggerSet
-	flushLoop   *time.Ticker // 刷盘频率
-	rebuildLoop *time.Ticker // 刷盘频率
-	bufChan     chan *loggerItem
-	isLock      bool
+	// Maximum length per log message
+	maxLen int
+	// Maximum buffer size before forced flush
+	maxSetSize int
+	// Interval for periodic flushing
+	flushInterval time.Duration
+	// Buffered channel for log entries
+	bufChan chan *loggerItem
+	// Buffered log storage
+	set *log.LoggerSet
+	// Ticker for periodic flushing
+	flushTicker *time.Ticker
+	// Ticker for buffer rebuilding
+	rebuildTicker *time.Ticker
+	// Flag for rebuild status
+	isRebuilding bool
+	// Mutex for concurrent access
 	sync.RWMutex
 }
 
+// NewLogger creates a new Logger instance with default values
 func NewLogger() *Logger {
 	logger := &Logger{
-		maxLen:      2048,
-		maxSetSize:  20,
-		flushLoop:   time.NewTicker(time.Second * 10),
-		rebuildLoop: time.NewTicker(time.Hour * 12),
-		bufChan:     make(chan *loggerItem, 1000),
-		set:         log.NewLoggerSet(),
+		maxLen:        2048,
+		maxSetSize:    20,
+		flushTicker:   time.NewTicker(time.Second * 10),
+		rebuildTicker: time.NewTicker(time.Hour * 12),
+		bufChan:       make(chan *loggerItem, 2000),
+		set:           log.NewLoggerSet(),
 	}
-	go func() {
-		for item := range logger.bufChan {
-			if logger.set.Size() >= logger.maxSetSize {
-				err := logger.Flush()
-				if err != nil {
-					klog.Errorf("flush Err:%s", err.Error())
-				}
-			}
-			fmt.Printf("id:%d  msg:%s \n", item.eventID, item.msg)
-			if logger.isLocked() {
-				time.Sleep(time.Millisecond * 300)
-				logger.Write(item.eventID, item.msg)
-			} else {
-				logger.set.AddOrGet(item.eventID).WriteString(item.msg)
-			}
-
-		}
-	}()
-	go func() {
-		for {
-			select {
-			case <-logger.flushLoop.C:
-				// 定时任务处理逻辑
-				err := logger.Flush()
-				if err != nil {
-					klog.Errorf("flush Err:%s", err.Error())
-				}
-			}
-		}
-	}()
+	go logger.processBuffer()
+	go logger.flushLoop()
 	go logger.rebuild()
 	return logger
 }
 
+// processBuffer handles incoming log entries from buffer channel
+func (l *Logger) processBuffer() {
+	for item := range l.bufChan {
+		if l.set.Size() >= l.maxSetSize {
+			err := l.Flush()
+			if err != nil {
+				klog.Errorf("flush Err:%s", err.Error())
+			}
+		}
+		if l.isLocked() {
+			time.Sleep(time.Millisecond * 300)
+			l.Write(item.eventID, item.msg)
+		} else {
+			l.set.AddOrGet(item.eventID).WriteString(item.msg)
+		}
+	}
+}
+
+// flushLoop handles periodic flushing
+func (l *Logger) flushLoop() {
+	for {
+		select {
+		case <-l.flushTicker.C:
+			// 定时任务处理逻辑
+			err := l.Flush()
+			if err != nil {
+				klog.Errorf("flush Err:%s", err.Error())
+			}
+		}
+	}
+}
+
+// Write adds a new log entry to the buffer
 func (l *Logger) Write(eventID int, msg string) {
 	if len(msg) > l.maxLen {
-		msg = SubStrDecodeRuneInString(msg, l.maxLen) + "..."
+		msg = helper.SubStrDecodeRuneInString(msg, l.maxLen) + "..."
 	}
 	l.bufChan <- &loggerItem{eventID: eventID, msg: msg}
 }
@@ -79,26 +97,26 @@ func (l *Logger) Write(eventID int, msg string) {
 func (l *Logger) isLocked() bool {
 	l.RLock()
 	defer l.RUnlock()
-	return l.isLock
+	return l.isRebuilding
 }
 
-func (l *Logger) lock() {
+func (l *Logger) startRebuild() {
 	l.Lock()
-	l.isLock = true
+	l.isRebuilding = true
 	l.Unlock()
 }
 
 func (l *Logger) unlock() {
 	l.Lock()
-	l.isLock = false
+	l.isRebuilding = false
 	l.Unlock()
 }
 
 func (l *Logger) rebuild() {
 	for {
 		select {
-		case <-l.rebuildLoop.C:
-			l.lock()
+		case <-l.rebuildTicker.C:
+			l.Lock()
 			newSet := log.NewLoggerSet()
 			currentSet := l.set
 			var data string
@@ -111,7 +129,7 @@ func (l *Logger) rebuild() {
 			}
 			currentSet = nil
 			l.set = newSet
-			l.unlock()
+			l.Unlock()
 		}
 	}
 }

@@ -3,7 +3,7 @@ package biz
 import (
 	"fmt"
 	"github.com/sqc157400661/jobx/api/types"
-	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/assert"
@@ -81,7 +81,7 @@ func TestSkip(t *testing.T) {
 	_, err = dao.JFDb.Where("id=?", 1443).Asc("id").Get(now)
 	next, _ := now.Next()
 	fmt.Println()
-	next.Context = internal.UnsafeMergeMap(next.Context, now.Context)
+	next.Context = helper.UnsafeMergeMap(next.Context, now.Context)
 	fmt.Println(next.Context)
 	_, err = dao.JFDb.Cols("context").ID(next.ID).Update(next)
 	assert.NoError(t, err)

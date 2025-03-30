@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/cmd/job"
-	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/options"
@@ -26,7 +26,7 @@ import (
 // determine based on the path and corresponding value of the input parameter,
 // in the format of {"create.pg.pvlEnable": "true"}.
 func NewHardJob(name, owner, tenant string, input interface{}, opts ...options.JobOptionFunc) (jobId int, err error) {
-	inputMap, _ := internal.Struct2Map(input)
+	inputMap, _ := helper.Struct2Map(input)
 	var jobDefs []*dao.JobDefinition
 	err = dao.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
 	if err != nil {

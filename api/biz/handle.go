@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 )
 
@@ -191,7 +191,7 @@ func Skip(req types.SkipReq) (err error) {
 		return
 	}
 	if next.ID > 0 {
-		next.Context = internal.UnsafeMergeMap(next.Context, task.Context)
+		next.Context = helper.UnsafeMergeMap(next.Context, task.Context)
 		_, err = model.Cols("context").Update(next, &dao.PipelineTask{ID: next.ID})
 		if err != nil {
 			return
