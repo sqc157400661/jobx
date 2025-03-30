@@ -5,7 +5,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/pkg/errors"
 	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/names"
 	"github.com/sqc157400661/jobx/pkg/dao"
 )
 
@@ -75,7 +75,7 @@ func (c *DefaultCollector) ReleaseJob() (err error) {
 func (c *DefaultCollector) steal() (lockedNum int64, err error) {
 	var res sql.Result
 	// CAS
-	res, err = c.engine.Exec(stealJobsSqlTmpl, c.serverUid, internal.PreLockKey(c.serverUid), config.PhaseReady, c.stealLen)
+	res, err = c.engine.Exec(stealJobsSqlTmpl, c.serverUid, names.PreLockKey(c.serverUid), config.PhaseReady, c.stealLen)
 	if err != nil {
 		return 0, err
 	}

@@ -18,11 +18,6 @@ func NewLoggerSet() *LoggerSet {
 	}
 }
 
-// ReAdd adds the item to the set.
-func (s *LoggerSet) ReAdd(item int, buf *bytes.Buffer) {
-	s.add(item, buf)
-}
-
 // Add adds the item to the set.
 func (s *LoggerSet) Add(item int) {
 	buf := new(bytes.Buffer)
@@ -44,20 +39,6 @@ func (s *LoggerSet) AddOrGet(item int) *bytes.Buffer {
 		buf := new(bytes.Buffer)
 		s.add(item, buf)
 		return buf
-	}
-}
-
-// Remove removes the items (one or more) from the set.
-func (s *LoggerSet) Remove(items ...int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, item := range items {
-		buf := s.Get(item)
-		if buf != nil {
-			buf.Reset()
-			//buf = nil
-		}
-		delete(s.items, item)
 	}
 }
 
@@ -92,8 +73,8 @@ func (s *LoggerSet) Size() int {
 	return len(s.items)
 }
 
-// Clear clears all values in the set.
-func (s *LoggerSet) Clear() {
+// ClearAll clears all values in the set.
+func (s *LoggerSet) ClearAll() {
 	s.items = make(map[int]*bytes.Buffer)
 }
 
@@ -102,4 +83,15 @@ func (s *LoggerSet) Items() map[int]*bytes.Buffer {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.items
+}
+
+func (s *LoggerSet) CleanupEmpty() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for id, buf := range s.items {
+		if buf.Len() == 0 {
+			delete(s.items, id)
+		}
+	}
 }
