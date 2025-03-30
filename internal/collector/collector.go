@@ -12,7 +12,7 @@ import (
 const (
 	checkUndoJobsSqlTmpl = "locker=? and phase !=? and parent_id=0"
 	getStealJobSqlTmpl   = "locker=? and phase =? and parent_id=0"
-	stealJobsSqlTmpl     = `update job set locker=? where  parent_id=0 and (locker='' or locker=?) and phase =? order by id asc limit ?s`
+	stealJobsSqlTmpl     = `update job set locker=? where  parent_id=0 and (locker='' or locker=?) and phase =? order by id asc limit ?`
 	releaseJobSqlTmpl    = `update job set locker='',phase =?  where locker=? and id =?`
 )
 
