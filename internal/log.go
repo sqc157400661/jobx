@@ -16,8 +16,8 @@ type loggerItem struct {
 	msg     string
 }
 
-// Logger handles buffered logging operations with periodic flushing
-type Logger struct {
+// BufferLogger handles buffered logging operations with periodic flushing
+type BufferLogger struct {
 	// Maximum length per log message
 	maxLen int
 	// Maximum buffer size before forced flush
@@ -38,11 +38,11 @@ type Logger struct {
 	sync.RWMutex
 }
 
-// NewLogger creates a new Logger instance with default values
-func NewLogger() *Logger {
-	logger := &Logger{
+// NewBufferLogger creates a new Logger instance with default values
+func NewBufferLogger() *BufferLogger {
+	logger := &BufferLogger{
 		maxLen:        2048,
-		maxSetSize:    20,
+		maxSetSize:    50,
 		flushTicker:   time.NewTicker(time.Second * 10),
 		rebuildTicker: time.NewTicker(time.Hour * 12),
 		bufChan:       make(chan *loggerItem, 2000),
@@ -55,7 +55,7 @@ func NewLogger() *Logger {
 }
 
 // processBuffer handles incoming log entries from buffer channel
-func (l *Logger) processBuffer() {
+func (l *BufferLogger) processBuffer() {
 	for item := range l.bufChan {
 		if l.set.Size() >= l.maxSetSize {
 			err := l.Flush()
@@ -73,7 +73,7 @@ func (l *Logger) processBuffer() {
 }
 
 // flushLoop handles periodic flushing
-func (l *Logger) flushLoop() {
+func (l *BufferLogger) flushLoop() {
 	for {
 		select {
 		case <-l.flushTicker.C:
@@ -87,32 +87,32 @@ func (l *Logger) flushLoop() {
 }
 
 // Write adds a new log entry to the buffer
-func (l *Logger) Write(eventID int, msg string) {
+func (l *BufferLogger) Write(eventID int, msg string) {
 	if len(msg) > l.maxLen {
 		msg = helper.SubStrDecodeRuneInString(msg, l.maxLen) + "..."
 	}
 	l.bufChan <- &loggerItem{eventID: eventID, msg: msg}
 }
 
-func (l *Logger) isLocked() bool {
+func (l *BufferLogger) isLocked() bool {
 	l.RLock()
 	defer l.RUnlock()
 	return l.isRebuilding
 }
 
-func (l *Logger) startRebuild() {
+func (l *BufferLogger) startRebuild() {
 	l.Lock()
 	l.isRebuilding = true
 	l.Unlock()
 }
 
-func (l *Logger) unlock() {
+func (l *BufferLogger) unlock() {
 	l.Lock()
 	l.isRebuilding = false
 	l.Unlock()
 }
 
-func (l *Logger) rebuild() {
+func (l *BufferLogger) rebuild() {
 	for {
 		select {
 		case <-l.rebuildTicker.C:
@@ -134,7 +134,7 @@ func (l *Logger) rebuild() {
 	}
 }
 
-func (l *Logger) Flush() (err error) {
+func (l *BufferLogger) Flush() (err error) {
 	if l.isLocked() {
 		return
 	}

@@ -27,7 +27,7 @@ func TestLogger(t *testing.T) {
 	engine, err := test.GetEngine()
 	dao.JFDb = engine
 	require.NoError(t, err)
-	logger := NewLogger()
+	logger := NewBufferLogger()
 	go func() {
 		for j := 0; j < 3; j++ {
 			fmt.Println(j, "--")

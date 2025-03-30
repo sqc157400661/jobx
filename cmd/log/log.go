@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-var Logger *internal.Logger
+var Logger *internal.BufferLogger
 
 func init() {
-	Logger = internal.NewLogger()
+	Logger = internal.NewBufferLogger()
 }
 
 func Info(rootId interface{}, message string) {
