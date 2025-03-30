@@ -7,7 +7,7 @@ import (
 	"github.com/sqc157400661/jobx/cmd/log"
 	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/collector"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/internal/queue"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 	"k8s.io/klog/v2"
@@ -24,11 +24,12 @@ import (
 
 type JobFlow struct {
 	// Unique ID for JobFlow
-	uid       string
-	opts      options.Options
-	collector collector.Collector
-	worker    internal.Worker
-	tracker   internal.Tracker
+	uid        string
+	opts       options.Options
+	collector  collector.Collector
+	localQueue *queue.TaskQueue
+	worker     internal.Worker
+	tracker    internal.Tracker
 	// worker stop signal
 	stopChan chan struct{}
 	// The start operation is performed only once
@@ -44,9 +45,10 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 		return
 	}
 	jf = &JobFlow{
-		uid:      uid,
-		stopChan: make(chan struct{}),
-		stopped:  make(chan struct{}),
+		uid:        uid,
+		localQueue: queue.NewTaskQueue(20),
+		stopChan:   make(chan struct{}),
+		stopped:    make(chan struct{}),
 	}
 	o := options.DefaultOption
 	for _, opt := range opts {
@@ -54,7 +56,6 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 	}
 	jf.opts = o
 	// task execution occupies a separate session connection
-	dao.JFDb = db
 	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.PoolLen)
 	jf.worker = internal.NewDefaultWorker(o.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker)
@@ -100,17 +101,7 @@ func (jf *JobFlow) Start() {
 			for {
 				select {
 				case <-ticker.C:
-					// 这里去尝试获取资源并执行锁定
-					jobs, err := jf.collector.StealJob()
-					if err != nil {
-						klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
-					}
-					for _, job := range jobs {
-						err = jf.tracker.AddRootJob(job, jf.uid)
-						if err != nil {
-							klog.Error(err)
-						}
-					}
+					jf.processEnqueue()
 				case <-jf.stopChan:
 					err := jf.collector.ReleaseJob()
 					if err != nil {
@@ -122,6 +113,25 @@ func (jf *JobFlow) Start() {
 			}
 		}()
 	})
+}
+
+func (jf *JobFlow) processEnqueue() {
+
+	// 这里去尝试获取资源并执行锁定
+	jobs, err := jf.collector.StealJob()
+	if err != nil {
+		klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+	}
+	for _, job := range jobs {
+		err = jf.localQueue.AddToFront(job)
+		if err != nil {
+			klog.Error(err)
+		}
+		err = jf.tracker.AddRootJob(job, jf.uid)
+		if err != nil {
+			klog.Error(err)
+		}
+	}
 }
 
 // AddJob add a job to local queue
