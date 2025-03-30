@@ -4,6 +4,7 @@ package queue
 import (
 	"container/list"
 	"errors"
+	"github.com/sqc157400661/jobx/pkg/dao"
 	"sync"
 	"time"
 )
@@ -14,13 +15,9 @@ var (
 	ErrTaskNotFound = errors.New("task not found in queue")
 )
 
-// PipelineTask with enqueue timestamp
-type PipelineTask struct {
-	ID     int    `gorm:"primaryKey;column:id" json:"id" xorm:"id pk autoincr"`
-	JobID  int    `gorm:"column:job_id" json:"job_id" xorm:"job_id"`
-	Name   string `gorm:"column:name" json:"name" xorm:"name"`
-	Action string `gorm:"column:action" json:"action" xorm:"action"`
-	// ... other fields remain the same
+// JobTask with enqueue timestamp
+type JobTask struct {
+	dao.Job
 	EnqueueTime time.Time // Time when task was enqueued 任务入队时间
 }
 
@@ -29,7 +26,7 @@ type PipelineTask struct {
 type TaskQueue struct {
 	maxSize      int                   // Maximum allowed pending tasks
 	pending      *list.List            // List for pending tasks
-	processing   map[int]*PipelineTask // Map of in-progress tasks
+	processing   map[int]*JobTask      // Map of in-progress tasks
 	pendingMap   map[int]*list.Element // Map for O(1) pending task access
 	mu           sync.RWMutex          // Main mutex for pending operations
 	processingMu sync.RWMutex          // Mutex for processing map
@@ -41,14 +38,14 @@ func NewTaskQueue(maxSize int) *TaskQueue {
 	return &TaskQueue{
 		maxSize:    maxSize,
 		pending:    list.New(),
-		processing: make(map[int]*PipelineTask),
+		processing: make(map[int]*JobTask),
 		pendingMap: make(map[int]*list.Element),
 	}
 }
 
 // AddToFront adds a task to the front of the queue with timestamp
 // 添加任务到队列头部并记录时间戳
-func (q *TaskQueue) AddToFront(task *PipelineTask) error {
+func (q *TaskQueue) AddToFront(task *JobTask) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -64,7 +61,7 @@ func (q *TaskQueue) AddToFront(task *PipelineTask) error {
 
 // AddToBack adds a task to the end of the queue with timestamp
 // 添加任务到队列尾部并记录时间戳
-func (q *TaskQueue) AddToBack(task *PipelineTask) error {
+func (q *TaskQueue) AddToBack(task *JobTask) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -80,7 +77,7 @@ func (q *TaskQueue) AddToBack(task *PipelineTask) error {
 
 // Dequeue moves a task from pending to processing state
 // 从待处理队列取出任务并标记为执行中状态
-func (q *TaskQueue) Dequeue() (*PipelineTask, error) {
+func (q *TaskQueue) Dequeue() (*JobTask, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -89,7 +86,7 @@ func (q *TaskQueue) Dequeue() (*PipelineTask, error) {
 	}
 
 	element := q.pending.Front()
-	task := element.Value.(*PipelineTask)
+	task := element.Value.(*JobTask)
 	q.pending.Remove(element)
 	delete(q.pendingMap, task.ID)
 
@@ -102,15 +99,15 @@ func (q *TaskQueue) Dequeue() (*PipelineTask, error) {
 
 // GetLongPendingTasks returns tasks pending longer than specified duration
 // 获取等待时间超过指定时长的任务
-func (q *TaskQueue) GetLongPendingTasks(duration time.Duration) []*PipelineTask {
+func (q *TaskQueue) GetLongPendingTasks(duration time.Duration) []*JobTask {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 
-	var result []*PipelineTask
+	var result []*JobTask
 	threshold := time.Now().Add(-duration)
 
 	for e := q.pending.Front(); e != nil; e = e.Next() {
-		task := e.Value.(*PipelineTask)
+		task := e.Value.(*JobTask)
 		if task.EnqueueTime.Before(threshold) {
 			result = append(result, task)
 		}
@@ -173,7 +170,7 @@ func (q *TaskQueue) GetTaskState(taskID int) (string, bool) {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 	for e := q.pending.Front(); e != nil; e = e.Next() {
-		if t := e.Value.(*PipelineTask); t.ID == taskID {
+		if t := e.Value.(*JobTask); t.ID == taskID {
 			return "pending", true
 		}
 	}
