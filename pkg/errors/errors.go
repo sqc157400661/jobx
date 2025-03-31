@@ -18,6 +18,18 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("error: code = %d reason = %s message = %s", e.Code, e.Reason, e.Message)
 }
 
+// Is reports whether any error in err's chain matches target.
+func (e *Error) Is(err error) bool {
+	if err == nil {
+		return false
+	}
+	targetErr := new(Error)
+	if !errors.As(err, &targetErr) {
+		return false
+	}
+	return targetErr.Code == e.Code
+}
+
 // New returns an error object for the code, message.
 func New(code int, message string) *Error {
 	e := &Error{

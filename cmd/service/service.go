@@ -3,16 +3,18 @@ package service
 import (
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/go-xorm/xorm"
+	"k8s.io/klog/v2"
+
 	"github.com/sqc157400661/jobx/cmd/log"
 	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/collector"
 	"github.com/sqc157400661/jobx/internal/queue"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
-	"k8s.io/klog/v2"
-	"sync"
-	"time"
 )
 
 /*
@@ -57,7 +59,7 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 	jf.opts = o
 	// task execution occupies a separate session connection
 	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.PoolLen)
-	jf.worker = internal.NewDefaultWorker(o.PoolLen)
+	jf.worker = internal.NewDefaultWorkerPool(o.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker)
 	return
 }
@@ -135,7 +137,6 @@ func (jf *JobFlow) processEnqueue() {
 }
 
 // AddJob add a job to local queue
-// todo
 func (jf *JobFlow) AddJob() {
 
 }

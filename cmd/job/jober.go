@@ -3,6 +3,9 @@ package job
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/helper"
@@ -10,9 +13,6 @@ import (
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
-	"time"
-
-	"strings"
 )
 
 // job拥有者
@@ -67,7 +67,7 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 	}
 	// 判断是否在全局Provider中
 	if !providers.Has(action) {
-		j.err = errors.NoProvider()
+		j.err = errors.ErrNoProvider
 		return j
 	}
 	if j.Pipeline == nil {
@@ -86,7 +86,7 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 			Status: config.StatusPending,
 		},
 	}
-	j.Pipeline.Tasks = append(j.Pipeline.Tasks, t)
+	j.Pipeline.Steps = append(j.Pipeline.Steps, t)
 	j.Job.Runnable = config.RunnableYes
 	return j
 }
@@ -178,7 +178,7 @@ func (j *Jober) Exec() (err error) {
 		if jober.Pipeline == nil {
 			continue
 		}
-		for _, task := range jober.Pipeline.Tasks {
+		for _, task := range jober.Pipeline.Steps {
 			task.JobID = jober.Job.ID
 			if task.Env == nil {
 				task.Env = map[string]interface{}{"rootID": root.Job.ID}
@@ -221,7 +221,7 @@ func WaitJob(jobId int, timeout int) error {
 	go waitJob(ctx, jobId, done)
 	select {
 	case <-ctx.Done(): // 超时
-		return errors.WaitTimeout()
+		return errors.ErrWaitJobTimeout
 	case <-done: // 所有任务完成
 		return nil
 	}

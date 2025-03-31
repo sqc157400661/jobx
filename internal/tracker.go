@@ -2,11 +2,14 @@ package internal
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/pkg/dao"
-	"k8s.io/klog/v2"
 	"sync"
+
+	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
+
+	"github.com/sqc157400661/jobx/config"
+	"github.com/sqc157400661/jobx/internal/queue"
+	"github.com/sqc157400661/jobx/pkg/dao"
 )
 
 /*
@@ -34,7 +37,7 @@ type TrackSignal struct {
 	Msg         string
 }
 
-func NewTracker(worker Worker) (t *DefaultTracker) {
+func NewTracker(worker Worker, queue queue.TaskQueue) (t *DefaultTracker) {
 	t = &DefaultTracker{
 		stopChan:    make(chan struct{}),
 		worker:      worker,
@@ -46,7 +49,7 @@ func NewTracker(worker Worker) (t *DefaultTracker) {
 }
 
 // Add  add rootJob to Tracker
-func (t *DefaultTracker) AddRootJob(rootJob *dao.Job, uid string) (err error) {
+func (t *DefaultTracker) AddRootJob(rootJob *dao.Job) (err error) {
 	// if it already exists in tracker,return
 	if t.get(rootJob.ID) != nil {
 		return
@@ -171,5 +174,4 @@ func (t *DefaultTracker) track() {
 			}
 		}
 	}
-
 }

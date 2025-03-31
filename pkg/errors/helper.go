@@ -1,5 +1,7 @@
 package errors
 
+import "fmt"
+
 func IgnoreBIZExist(err error) error {
 	if Code(err) == BIZExist {
 		return nil
@@ -28,24 +30,12 @@ func IsTokenExist(err error) bool {
 	return false
 }
 
-func NoProvider() error {
-	return New(NoJobProvider, "no provider")
-}
-
 func BIZConflict(msg string) error {
 	return New(BIZExist, msg)
 }
 
-func NotFoundDefJob() error {
-	return New(NotFoundJobDefs, NotFoundJobDefsReason)
-}
-
 func TokenConflict(msg string) error {
 	return New(TokenExist, msg)
-}
-
-func WaitTimeout() error {
-	return New(WaitJobTimeout, WaitJobTimeoutReason)
 }
 
 func IsWaitTimeout(err error) bool {
@@ -60,4 +50,12 @@ func IgnoreWaitTimeout(err error) error {
 		return nil
 	}
 	return err
+}
+
+func NewNoTaskFoundErrorWithJobID(rootID, jobID int) error {
+	return New(NoTaskFoundCode, fmt.Sprintf("rootID:%d job:%d", rootID, jobID))
+}
+
+func NewNoRunnablePipelineTaskErrorWithJobID(rootID, jobID int) error {
+	return New(NoRunnablePipelineTaskCode, fmt.Sprintf("rootID:%d job:%d", rootID, jobID))
 }

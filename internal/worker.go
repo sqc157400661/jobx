@@ -2,41 +2,42 @@ package internal
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/pkg/errors"
+
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
-	"k8s.io/klog/v2"
-	"sync"
-	"time"
 )
 
-type Worker interface {
+type WorkerPool interface {
 	Submit(p *Pipeline) (err error)
 	Run()
 	Quit()
 }
 
-type DefaultWorker struct {
-	pipePool chan *Pipeline
-	// worker stop signal
-	stopChan chan struct{}
+type DefaultWorkerPool struct {
+	maxWorkers int
+	pipePool   chan *Pipeline
 	// The start operation is performed only once
 	startOnce sync.Once
 	// The stop operation is performed only once
 	stopOnce sync.Once
+	wg       sync.WaitGroup
 	isQuit   bool
 }
 
-func NewDefaultWorker(poolLen int) (w *DefaultWorker) {
-	w = &DefaultWorker{
-		pipePool: make(chan *Pipeline, poolLen),
-		stopChan: make(chan struct{}),
+func NewDefaultWorkerPool(maxWorkers int) (w *DefaultWorkerPool) {
+	w = &DefaultWorkerPool{
+		maxWorkers: maxWorkers,
+		pipePool:   make(chan *Pipeline, maxWorkers*2),
 	}
 	return
 }
-func (w *DefaultWorker) Submit(p *Pipeline) (err error) {
+func (w *DefaultWorkerPool) Submit(p *Pipeline) (err error) {
 	if w.isQuit {
 		return errors.New("worker is quit")
 	}
@@ -44,30 +45,27 @@ func (w *DefaultWorker) Submit(p *Pipeline) (err error) {
 	return
 }
 
-func (w *DefaultWorker) Run() {
+func (w *DefaultWorkerPool) Run() {
 	w.startOnce.Do(func() {
-		go func() {
-			for {
-				select {
-				case val, ok := <-w.pipePool:
-					if !ok {
-						klog.Info("pipeline chan is closed")
-						return
-					}
-					go w.process(val)
-				case <-w.stopChan:
-					return
-				}
-			}
-		}()
+		for i := 0; i < w.maxWorkers; i++ {
+			w.wg.Add(1)
+			go w.worker()
+		}
 	})
 }
 
-func (w *DefaultWorker) process(pipeline *Pipeline) {
+func (w *DefaultWorkerPool) worker() {
+	defer w.wg.Done()
+	for task := range w.pipePool {
+		w.process(task)
+	}
+}
+
+func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 	if pipeline == nil {
 		return
 	}
-	if len(pipeline.Tasks) == 0 {
+	if len(pipeline.Steps) == 0 {
 		pipeline.Finish()
 		return
 	}
@@ -98,7 +96,7 @@ func (w *DefaultWorker) process(pipeline *Pipeline) {
 	// TODO : 定期维护执行心跳，用于无主任务回收
 	// pipeCtx may interrupt loss
 	var pipeCtx map[string]interface{}
-	for _, task := range pipeline.Tasks {
+	for _, task := range pipeline.Steps {
 		curTask = task
 		if !pipeline.IsRunning() {
 			return
@@ -161,7 +159,7 @@ func (w *DefaultWorker) process(pipeline *Pipeline) {
 }
 
 // runWithRetry call the function and try again
-func (w *DefaultWorker) runWithRetry(task *dao.PipelineTask, fn func(int) error, sleep time.Duration) (err error) {
+func (w *DefaultWorkerPool) runWithRetry(task *dao.PipelineTask, fn func(int) error, sleep time.Duration) (err error) {
 	for i := 1; i <= task.Retry; i++ {
 		if err = fn(int(task.Retries)); err != nil {
 			err = errors.Wrapf(err, "run err with retry nu:%d", i)
@@ -177,7 +175,7 @@ func (w *DefaultWorker) runWithRetry(task *dao.PipelineTask, fn func(int) error,
 	return
 }
 
-func (w *DefaultWorker) rollback(provider providers.TaskProvider, status string) {
+func (w *DefaultWorkerPool) rollback(provider providers.TaskProvider, status string) {
 	if provider == nil {
 		return
 	}
@@ -188,9 +186,9 @@ func (w *DefaultWorker) rollback(provider providers.TaskProvider, status string)
 	providers.ReSet(provider)
 }
 
-func (w *DefaultWorker) Quit() {
+func (w *DefaultWorkerPool) Quit() {
 	w.stopOnce.Do(func() {
 		w.isQuit = true
-		close(w.stopChan)
+		close(w.pipePool)
 	})
 }

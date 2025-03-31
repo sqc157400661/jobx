@@ -1,14 +1,16 @@
 package hardjob
 
 import (
+	"strings"
+
 	"github.com/spf13/viper"
+
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/cmd/job"
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/options"
-	"strings"
 )
 
 // NewHardJob quickly create tasks based on predefined jobs,
@@ -33,7 +35,7 @@ func NewHardJob(name, owner, tenant string, input interface{}, opts ...options.J
 		return
 	}
 	if len(jobDefs) == 0 {
-		err = errors.NotFoundDefJob()
+		err = errors.ErrNotFoundDefJob
 		return
 	}
 	if len(opts) > 0 {

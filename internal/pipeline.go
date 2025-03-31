@@ -1,17 +1,18 @@
 package internal
 
 import (
-	"errors"
-	"fmt"
-	"github.com/sqc157400661/jobx/pkg/dao"
-	"k8s.io/klog/v2"
 	"sync"
+
+	"k8s.io/klog/v2"
+
+	"github.com/sqc157400661/jobx/pkg/dao"
+	joberrors "github.com/sqc157400661/jobx/pkg/errors"
 )
 
 type Pipeline struct {
 	RootID       int
 	JobID        int
-	Tasks        []*dao.PipelineTask
+	Steps        []*dao.PipelineTask
 	resSignal    chan<- TrackSignal
 	mutex        sync.RWMutex
 	isPaused     bool
@@ -27,7 +28,7 @@ func NewPipeline(job dao.Job, res chan<- TrackSignal) (p *Pipeline, err error) {
 		return
 	}
 	if len(tasks) == 0 {
-		err = errors.New(fmt.Sprintf("no task found,rootID:%d job:%d", job.RootID, job.ID))
+		err = joberrors.NewNoTaskFoundErrorWithJobID(job.RootID, job.ID)
 		return
 	}
 	p = &Pipeline{
@@ -45,11 +46,11 @@ func NewPipeline(job dao.Job, res chan<- TrackSignal) (p *Pipeline, err error) {
 			// if the task is pausing or failed, it is considered unable to execute
 			// when obtaining a job, it should be verified. so considered that an error has occurred
 			p = nil
-			err = errors.New("no runnable pipeline task")
+			err = joberrors.NewNoRunnablePipelineTaskErrorWithJobID(job.RootID, job.ID)
 			return nil, err
 		}
 	}
-	p.Tasks = readyTasks
+	p.Steps = readyTasks
 	return
 }
 
@@ -86,7 +87,7 @@ func (p *Pipeline) AddSucceeded() {
 }
 
 func (p *Pipeline) Finish() {
-	if p.FinishedTask == p.TotalTask || len(p.Tasks) == 0 {
+	if p.FinishedTask == p.TotalTask || len(p.Steps) == 0 {
 		p.writeBack(true, "")
 		return
 	}

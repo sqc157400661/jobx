@@ -3,16 +3,11 @@ package queue
 
 import (
 	"container/list"
-	"errors"
-	"github.com/sqc157400661/jobx/pkg/dao"
 	"sync"
 	"time"
-)
 
-var (
-	ErrQueueFull    = errors.New("task queue is at full capacity")
-	ErrEmptyQueue   = errors.New("no tasks in queue")
-	ErrTaskNotFound = errors.New("task not found in queue")
+	"github.com/sqc157400661/jobx/pkg/dao"
+	joberrors "github.com/sqc157400661/jobx/pkg/errors"
 )
 
 // JobTask with enqueue timestamp
@@ -50,7 +45,7 @@ func (q *TaskQueue) AddToFront(job *dao.Job) error {
 	defer q.mu.Unlock()
 
 	if q.pending.Len() >= q.maxSize {
-		return ErrQueueFull
+		return joberrors.ErrQueueFullError
 	}
 	task := &JobTask{Job: job, EnqueueTime: time.Now()}
 	element := q.pending.PushFront(task)
@@ -65,7 +60,7 @@ func (q *TaskQueue) AddToBack(job *dao.Job) error {
 	defer q.mu.Unlock()
 
 	if q.pending.Len() >= q.maxSize {
-		return ErrQueueFull
+		return joberrors.ErrQueueFullError
 	}
 	task := &JobTask{Job: job, EnqueueTime: time.Now()}
 	element := q.pending.PushBack(task)
@@ -80,7 +75,7 @@ func (q *TaskQueue) Dequeue() (*dao.Job, error) {
 	defer q.mu.Unlock()
 
 	if q.pending.Len() == 0 {
-		return nil, ErrEmptyQueue
+		return nil, joberrors.ErrEmptyQueueError
 	}
 
 	element := q.pending.Front()
@@ -122,7 +117,7 @@ func (q *TaskQueue) RemoveTaskByID(taskID int) error {
 
 	element, exists := q.pendingMap[taskID]
 	if !exists {
-		return ErrTaskNotFound
+		return joberrors.ErrTaskNotFoundError
 	}
 
 	q.pending.Remove(element)
