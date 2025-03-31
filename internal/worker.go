@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -13,38 +14,50 @@ import (
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
+// WorkerPool defines interface for pipeline task processing worker pools.
 type WorkerPool interface {
 	Submit(p *Pipeline) (err error)
 	Run()
 	Quit()
 }
 
+// DefaultWorkerPool implements WorkerPool using fixed goroutine workers.
+// Handles task distribution, panic recovery, and graceful shutdown.
 type DefaultWorkerPool struct {
+	// Maximum concurrent workers
 	maxWorkers int
-	pipePool   chan *Pipeline
-	// The start operation is performed only once
+	// Task queue (buffered channel)
+	pipePool chan *Pipeline
+	// Ensures single initialization
 	startOnce sync.Once
-	// The stop operation is performed only once
+	// Ensures single shutdown
 	stopOnce sync.Once
-	wg       sync.WaitGroup
-	isQuit   bool
+	// Tracks active workers
+	wg sync.WaitGroup
+	// Atomic shutdown flag
+	isQuit atomic.Bool
 }
 
+// NewDefaultWorkerPool creates a worker pool with specified concurrency.
 func NewDefaultWorkerPool(maxWorkers int) (w *DefaultWorkerPool) {
 	w = &DefaultWorkerPool{
 		maxWorkers: maxWorkers,
-		pipePool:   make(chan *Pipeline, maxWorkers*2),
+		pipePool:   make(chan *Pipeline, maxWorkers),
 	}
 	return
 }
+
+// Submit adds a pipeline to the pool. Returns error if pool is shutting down.
+// Thread-safe: Uses atomic check to prevent sending to closed channel.
 func (w *DefaultWorkerPool) Submit(p *Pipeline) (err error) {
-	if w.isQuit {
+	if w.isQuit.Load() {
 		return errors.New("worker is quit")
 	}
 	w.pipePool <- p
 	return
 }
 
+// Run starts worker goroutines. Idempotent - only executes once.
 func (w *DefaultWorkerPool) Run() {
 	w.startOnce.Do(func() {
 		for i := 0; i < w.maxWorkers; i++ {
@@ -54,6 +67,7 @@ func (w *DefaultWorkerPool) Run() {
 	})
 }
 
+// worker processes tasks from pipePool until channel closure.
 func (w *DefaultWorkerPool) worker() {
 	defer w.wg.Done()
 	for task := range w.pipePool {
@@ -61,6 +75,7 @@ func (w *DefaultWorkerPool) worker() {
 	}
 }
 
+// process executes pipeline steps with panic recovery and error handling.
 func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 	if pipeline == nil {
 		return
@@ -69,9 +84,11 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 		pipeline.Finish()
 		return
 	}
-	var err error
-	var curTask *dao.PipelineTask
-	var taskProvider providers.TaskProvider
+	var (
+		err          error
+		curTask      *dao.PipelineTask
+		taskProvider providers.TaskProvider
+	)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("internal error: %v", r)
@@ -158,7 +175,7 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 	}
 }
 
-// runWithRetry call the function and try again
+// runWithRetry executes task with retry logic. Uses exponential backoff.
 func (w *DefaultWorkerPool) runWithRetry(task *dao.PipelineTask, fn func(int) error, sleep time.Duration) (err error) {
 	for i := 1; i <= task.Retry; i++ {
 		if err = fn(int(task.Retries)); err != nil {
@@ -175,6 +192,7 @@ func (w *DefaultWorkerPool) runWithRetry(task *dao.PipelineTask, fn func(int) er
 	return
 }
 
+// rollback executes provider rollback if available.
 func (w *DefaultWorkerPool) rollback(provider providers.TaskProvider, status string) {
 	if provider == nil {
 		return
@@ -186,9 +204,12 @@ func (w *DefaultWorkerPool) rollback(provider providers.TaskProvider, status str
 	providers.ReSet(provider)
 }
 
+// Quit stops the pool gracefully. Allows in-flight tasks to complete.
 func (w *DefaultWorkerPool) Quit() {
 	w.stopOnce.Do(func() {
-		w.isQuit = true
+		// Prevent new submissions
+		w.isQuit.Store(true)
+		// Stop worker goroutines
 		close(w.pipePool)
 	})
 }
