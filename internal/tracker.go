@@ -17,13 +17,14 @@ import (
 回调
 */
 type Tracker interface {
-	AddRootJob(rootJob *dao.Job) (err error)
+	AddSyncJob(rootJob *dao.Job) (err error)
 }
 
 type DefaultTracker struct {
 	worker      WorkerPool
 	trackerMap  map[int]*trackItem
 	startOnce   sync.Once
+	localQueue  *queue.TaskQueue
 	stopChan    chan struct{}
 	mutex       sync.RWMutex
 	TrackSignal chan TrackSignal
@@ -41,6 +42,7 @@ func NewTracker(worker WorkerPool, queue *queue.TaskQueue) (t *DefaultTracker) {
 	t = &DefaultTracker{
 		stopChan:    make(chan struct{}),
 		worker:      worker,
+		localQueue:  queue,
 		trackerMap:  make(map[int]*trackItem),
 		TrackSignal: make(chan TrackSignal, 100),
 	}
@@ -48,8 +50,19 @@ func NewTracker(worker WorkerPool, queue *queue.TaskQueue) (t *DefaultTracker) {
 	return
 }
 
+func (t *DefaultTracker) consumeQueue() {
+	for job,err:=t.localQueue.Dequeue() {
+		if job == nil {
+			continue
+		}
+		if err != nil {
+
+		}
+	}
+}
+
 // Add  add rootJob to Tracker
-func (t *DefaultTracker) AddRootJob(rootJob *dao.Job) (err error) {
+func (t *DefaultTracker) AddSyncJob(rootJob *dao.Job) (err error) {
 	// if it already exists in tracker,return
 	if t.get(rootJob.ID) != nil {
 		return
