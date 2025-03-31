@@ -30,7 +30,7 @@ type JobFlow struct {
 	opts       options.Options
 	collector  collector.Collector
 	localQueue *queue.TaskQueue
-	worker     internal.Worker
+	worker     internal.WorkerPool
 	tracker    internal.Tracker
 	// worker stop signal
 	stopChan chan struct{}
@@ -60,7 +60,7 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 	// task execution occupies a separate session connection
 	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.PoolLen)
 	jf.worker = internal.NewDefaultWorkerPool(o.PoolLen)
-	jf.tracker = internal.NewTracker(jf.worker)
+	jf.tracker = internal.NewTracker(jf.worker, jf.localQueue)
 	return
 }
 
@@ -129,7 +129,7 @@ func (jf *JobFlow) processEnqueue() {
 		if err != nil {
 			klog.Error(err)
 		}
-		err = jf.tracker.AddRootJob(job, jf.uid)
+		err = jf.tracker.AddRootJob(job)
 		if err != nil {
 			klog.Error(err)
 		}

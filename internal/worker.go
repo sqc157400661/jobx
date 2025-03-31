@@ -16,7 +16,7 @@ import (
 
 // WorkerPool defines interface for pipeline task processing worker pools.
 type WorkerPool interface {
-	Submit(p *Pipeline) (err error)
+	Submit(p *Pipeline, isSync bool) (err error)
 	Run()
 	Quit()
 }
@@ -49,11 +49,16 @@ func NewDefaultWorkerPool(maxWorkers int) (w *DefaultWorkerPool) {
 
 // Submit adds a pipeline to the pool. Returns error if pool is shutting down.
 // Thread-safe: Uses atomic check to prevent sending to closed channel.
-func (w *DefaultWorkerPool) Submit(p *Pipeline) (err error) {
+func (w *DefaultWorkerPool) Submit(p *Pipeline, isSync bool) (err error) {
 	if w.isQuit.Load() {
 		return errors.New("worker is quit")
 	}
-	w.pipePool <- p
+	if isSync {
+		w.process(p)
+	} else {
+		w.pipePool <- p
+	}
+
 	return
 }
 
@@ -125,7 +130,7 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 			return
 		}
 		pipeCtx = helper.UnsafeMergeMap(pipeCtx, curTask.Context)
-		// 传入相关参数
+		// Merge contexts and update task
 		curTask.Input = helper.UnsafeMergeMap(curTask.Input, pipeCtx)
 		curTask.Context = pipeCtx
 		err = curTask.Update()
@@ -151,12 +156,12 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 			}
 			return
 		}
-		// 执行task主体
+		// Execute with retry
 		if err = w.runWithRetry(curTask, taskProvider.Run, options.GetRetryGapSecond(curTask.Env)); err != nil {
 			err = errors.Wrapf(err, "taskProvider %s run err", task.Action)
 			return
 		}
-		// 处理task输出结果
+		// Process outputs
 		var output, context map[string]interface{}
 		context, output, err = taskProvider.Output()
 		if err != nil {
@@ -197,9 +202,8 @@ func (w *DefaultWorkerPool) rollback(provider providers.TaskProvider, status str
 	if provider == nil {
 		return
 	}
-	rollback := providers.GetRollback(provider)
-	if rollback != nil {
-		rollback.Rollback(status)
+	if rb := providers.GetRollback(provider); rb != nil {
+		rb.Rollback(status)
 	}
 	providers.ReSet(provider)
 }

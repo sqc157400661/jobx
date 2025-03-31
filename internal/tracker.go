@@ -17,11 +17,11 @@ import (
 回调
 */
 type Tracker interface {
-	AddRootJob(rootJob *dao.Job, uid string) (err error)
+	AddRootJob(rootJob *dao.Job) (err error)
 }
 
 type DefaultTracker struct {
-	worker      Worker
+	worker      WorkerPool
 	trackerMap  map[int]*trackItem
 	startOnce   sync.Once
 	stopChan    chan struct{}
@@ -37,7 +37,7 @@ type TrackSignal struct {
 	Msg         string
 }
 
-func NewTracker(worker Worker, queue queue.TaskQueue) (t *DefaultTracker) {
+func NewTracker(worker WorkerPool, queue *queue.TaskQueue) (t *DefaultTracker) {
 	t = &DefaultTracker{
 		stopChan:    make(chan struct{}),
 		worker:      worker,
@@ -94,7 +94,7 @@ func (t *DefaultTracker) addTrackItem(rootId int, jobs []dao.Job) (err error) {
 		return
 	}
 	for _, v := range ti.Queue {
-		err = t.worker.Submit(v)
+		err = t.worker.Submit(v, false)
 		if err != nil {
 			return
 		}
