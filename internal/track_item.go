@@ -2,15 +2,17 @@ package internal
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
+
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/pkg/dao"
-	"k8s.io/klog/v2"
-	"sync"
 )
 
 type trackItem struct {
-	Queue    []*Pipeline
+	Pipes    []*Pipeline
 	total    int
 	failed   int
 	paused   int
@@ -24,7 +26,7 @@ func NewTrackItem(jobs []dao.Job, trackSignal chan TrackSignal) (ti *trackItem, 
 		return
 	}
 	ti = &trackItem{
-		Queue: make([]*Pipeline, 0, num),
+		Pipes: make([]*Pipeline, 0, num),
 		total: num,
 	}
 	// 循环处理
@@ -40,7 +42,7 @@ func NewTrackItem(jobs []dao.Job, trackSignal chan TrackSignal) (ti *trackItem, 
 			if err != nil {
 				return
 			}
-			ti.Queue = append(ti.Queue, p)
+			ti.Pipes = append(ti.Pipes, p)
 		} else if job.IsFinished() {
 			ti.AddSucceeded()
 		} else if job.IsPausing() {

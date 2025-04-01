@@ -17,8 +17,8 @@ import (
 // WorkerPool defines interface for pipeline task processing worker pools.
 type WorkerPool interface {
 	Submit(p *Pipeline, isSync bool) (err error)
-	Run()
-	Quit()
+	Start()
+	Stop()
 }
 
 // DefaultWorkerPool implements WorkerPool using fixed goroutine workers.
@@ -28,10 +28,6 @@ type DefaultWorkerPool struct {
 	maxWorkers int
 	// Task queue (buffered channel)
 	pipePool chan *Pipeline
-	// Ensures single initialization
-	startOnce sync.Once
-	// Ensures single shutdown
-	stopOnce sync.Once
 	// Tracks active workers
 	wg sync.WaitGroup
 	// Atomic shutdown flag
@@ -62,14 +58,12 @@ func (w *DefaultWorkerPool) Submit(p *Pipeline, isSync bool) (err error) {
 	return
 }
 
-// Run starts worker goroutines. Idempotent - only executes once.
-func (w *DefaultWorkerPool) Run() {
-	w.startOnce.Do(func() {
-		for i := 0; i < w.maxWorkers; i++ {
-			w.wg.Add(1)
-			go w.worker()
-		}
-	})
+// Start starts worker goroutines. Idempotent - only executes once.
+func (w *DefaultWorkerPool) Start() {
+	for i := 0; i < w.maxWorkers; i++ {
+		w.wg.Add(1)
+		go w.worker()
+	}
 }
 
 // worker processes tasks from pipePool until channel closure.
@@ -208,12 +202,11 @@ func (w *DefaultWorkerPool) rollback(provider providers.TaskProvider, status str
 	providers.ReSet(provider)
 }
 
-// Quit stops the pool gracefully. Allows in-flight tasks to complete.
-func (w *DefaultWorkerPool) Quit() {
-	w.stopOnce.Do(func() {
-		// Prevent new submissions
-		w.isQuit.Store(true)
-		// Stop worker goroutines
-		close(w.pipePool)
-	})
+// Stop stops the pool
+func (w *DefaultWorkerPool) Stop() {
+	// Prevent new submissions
+	w.isQuit.Store(true)
+	// Stop worker goroutines
+	close(w.pipePool)
+	w.wg.Wait()
 }

@@ -2,8 +2,10 @@ package collector
 
 import (
 	"database/sql"
+
 	"github.com/go-xorm/xorm"
 	"github.com/pkg/errors"
+
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/names"
 	"github.com/sqc157400661/jobx/pkg/dao"
@@ -17,8 +19,9 @@ const (
 )
 
 type Collector interface {
-	StealJob() (jobs []*dao.Job, err error)
-	ReleaseJob() (err error)
+	StealJobs() (jobs []*dao.Job, err error)
+	ReleaseJobs() (err error)
+	ReleaseJobByID(jobId int) (err error)
 }
 
 type DefaultCollector struct {
@@ -44,7 +47,7 @@ func (c *DefaultCollector) loadCheckUndoJobs(uid string) (jobs []dao.Job, err er
 	return
 }
 
-func (c *DefaultCollector) StealJob() (jobs []*dao.Job, err error) {
+func (c *DefaultCollector) StealJobs() (jobs []*dao.Job, err error) {
 	var num int64
 	num, err = c.steal()
 	if err != nil || num == 0 {
@@ -54,7 +57,7 @@ func (c *DefaultCollector) StealJob() (jobs []*dao.Job, err error) {
 	return
 }
 
-func (c *DefaultCollector) ReleaseJob() (err error) {
+func (c *DefaultCollector) ReleaseJobs() (err error) {
 	var jobs []dao.Job
 	err = c.engine.In("phase", []string{config.PhaseReady, config.PhaseRunning}).Where("locker=?", c.serverUid).Find(&jobs)
 	if err != nil {
@@ -62,7 +65,7 @@ func (c *DefaultCollector) ReleaseJob() (err error) {
 	}
 	// 依次更新状态并解除锁定
 	for _, v := range jobs {
-		err = c.releaseByID(v.ID)
+		err = c.ReleaseJobByID(v.ID)
 		if err != nil {
 			err = errors.Wrapf(err, "uid:%s unlock err id:%d", c.serverUid, v.ID)
 			return
@@ -82,7 +85,7 @@ func (c *DefaultCollector) steal() (lockedNum int64, err error) {
 	return res.RowsAffected()
 }
 
-func (c *DefaultCollector) releaseByID(jobId int) (err error) {
+func (c *DefaultCollector) ReleaseJobByID(jobId int) (err error) {
 	_, err = c.engine.Exec(releaseJobSqlTmpl, config.PhaseReady, c.serverUid, jobId)
 	return
 }

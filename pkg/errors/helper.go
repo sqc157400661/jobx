@@ -52,6 +52,19 @@ func IgnoreWaitTimeout(err error) error {
 	return err
 }
 
+func IsQueueFull(err error) bool {
+	if Code(err) == LocalQueueFullCode {
+		return true
+	}
+	return false
+}
+func IsQueueEmpty(err error) bool {
+	if Code(err) == ErrEmptyQueueCode {
+		return true
+	}
+	return false
+}
+
 func NewNoTaskFoundErrorWithJobID(rootID, jobID int) error {
 	return New(NoTaskFoundCode, fmt.Sprintf("rootID:%d job:%d", rootID, jobID))
 }

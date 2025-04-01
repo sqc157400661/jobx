@@ -23,13 +23,16 @@ var ErrorReasonMap = map[int]string{
 	NotFoundJobDefs:            NotFoundJobDefsReason,
 	NoTaskFoundCode:            NoTaskFoundReason,
 	NoRunnablePipelineTaskCode: NoRunnablePipelineTaskReason,
+	InvalidParameterCode:       InvalidParameterReason,
 }
 
 const (
 	// UnknownCode is unknown code for error info.
-	UnknownCode = 5001
+	UnknownCode = 100
 	// UnknownReason is unknown reason for error info.
-	UnknownReason = "Unknown error"
+	UnknownReason          = "Unknown error"
+	InvalidParameterCode   = 101
+	InvalidParameterReason = "Invalid parameter"
 
 	BIZExist         = 1001
 	BIZExistReason   = "biz conflict,biz uid already exists"
@@ -58,6 +61,8 @@ const (
 )
 
 var (
+	ErrInvalidParameter = New(InvalidParameterCode, "")
+
 	// for Job
 	ErrNoProvider     = New(NoJobProvider, "")
 	ErrNotFoundDefJob = New(NotFoundJobDefs, "")

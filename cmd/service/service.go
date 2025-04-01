@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -13,58 +12,65 @@ import (
 	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/collector"
 	"github.com/sqc157400661/jobx/internal/queue"
+	"github.com/sqc157400661/jobx/pkg/dao"
+	joberrors "github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
-/*
-	todo 优化，
-	1.同一台机器上运行多个uid相同的JobFlow会有问题
-	2.任务超时 释放锁机制
-	3.优化log，记录log
-*/
+const (
+	processJobEnQueueInterval = 1 * time.Second
+	localQueueLen             = 50
+	collectorJobLen           = 10
+)
 
+// JobFlow represents a job processing workflow that steals jobs from database,
+// manages local queue, and coordinates job distribution through tracker
 type JobFlow struct {
-	// Unique ID for JobFlow
-	uid        string
-	opts       options.Options
-	collector  collector.Collector
+	// Unique identifier for the JobFlow instance
+	uid string
+	// Configuration options
+	opts options.Options
+	// Job collector from database
+	collector collector.Collector
+	// Local buffer for stolen jobs
 	localQueue *queue.TaskQueue
-	worker     internal.WorkerPool
-	tracker    internal.Tracker
-	// worker stop signal
-	stopChan chan struct{}
-	// The start operation is performed only once
+	// Worker pool for job execution
+	worker internal.WorkerPool
+	// Tracks job progress and status
+	tracker internal.Tracker
+
+	// Concurrency control
+	stopChan  chan struct{}
 	startOnce sync.Once
-	// The stop operation is performed only once
-	stopOnce sync.Once
-	stopped  chan struct{}
+	stopOnce  sync.Once
+	stopped   chan struct{}
 }
 
+// NewJobFlow creates a new JobFlow instance with specified UID and database connection
 func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *JobFlow, err error) {
 	if uid == "" || db == nil {
-		err = errors.New("NewJobFlow err,param is not available")
+		err = joberrors.ErrInvalidParameter
 		return
 	}
 	jf = &JobFlow{
 		uid:        uid,
-		localQueue: queue.NewTaskQueue(20),
+		localQueue: queue.NewTaskQueue(localQueueLen),
 		stopChan:   make(chan struct{}),
 		stopped:    make(chan struct{}),
 	}
-	o := options.DefaultOption
+	jf.opts = options.DefaultOption
 	for _, opt := range opts {
-		opt(&o)
+		opt(&jf.opts)
 	}
-	jf.opts = o
-	// task execution occupies a separate session connection
-	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.PoolLen)
-	jf.worker = internal.NewDefaultWorkerPool(o.PoolLen)
+	// Initialize components with proper isolation
+	jf.collector = collector.NewDefaultCollector(db, uid, collectorJobLen)
+	jf.worker = internal.NewDefaultWorkerPool(jf.opts.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker, jf.localQueue)
 	return
 }
 
-// 注册action
+// Register adds task providers to the global provider registry
 func (jf *JobFlow) Register(p ...providers.TaskProvider) (err error) {
 	for _, v := range p {
 		if v != nil {
@@ -78,6 +84,7 @@ func (jf *JobFlow) Register(p ...providers.TaskProvider) (err error) {
 	return
 }
 
+// AddProvider registers a task provider with optional alias
 func (jf *JobFlow) AddProvider(t providers.TaskProvider, action ...string) (err error) {
 	if t == nil {
 		return
@@ -93,62 +100,96 @@ func (jf *JobFlow) AddProvider(t providers.TaskProvider, action ...string) (err 
 	return
 }
 
+// Start initiates the job processing workflow
 func (jf *JobFlow) Start() {
-	var ticker *time.Ticker
 	jf.startOnce.Do(func() {
 		go func() {
-			jf.worker.Run()
+			jf.tracker.Start()
+			go jf.processJobEnqueue()
 			klog.Infof("jobFlow:%s ,uid:%s,starting", jf.opts.Desc, jf.uid)
-			ticker = time.NewTicker(jf.opts.LoopInterval)
-			for {
-				select {
-				case <-ticker.C:
-					jf.processEnqueue()
-				case <-jf.stopChan:
-					err := jf.collector.ReleaseJob()
-					if err != nil {
-						klog.Error(err)
-					}
-					close(jf.stopped)
-					return
-				}
-			}
 		}()
 	})
 }
 
-func (jf *JobFlow) processEnqueue() {
+// processJobEnqueue manages job stealing and queue population
+func (jf *JobFlow) processJobEnqueue() {
+	var ticker *time.Ticker
+	ticker = time.NewTicker(processJobEnQueueInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-jf.tracker.Waiting():
+			err := jf.stealJobs()
+			if err != nil {
+				klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+			}
+		case <-ticker.C:
+			if jf.localQueue.PendingCount() > localQueueLen/2 {
+				continue
+			}
+			err := jf.stealJobs()
+			if err != nil {
+				klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+			}
+		case <-jf.stopChan:
+			err := jf.collector.ReleaseJobs()
+			if err != nil {
+				klog.Error(err)
+			}
+			close(jf.stopped)
+			return
+		}
+	}
+}
 
-	// 这里去尝试获取资源并执行锁定
-	jobs, err := jf.collector.StealJob()
+func (jf *JobFlow) RunSyncJob(Job *dao.Job) (err error) {
+	return jf.tracker.StartJob(Job, true)
+}
+
+// stealJobs retrieves jobs from collector and enqueues them
+func (jf *JobFlow) stealJobs() error {
+	jobs, err := jf.collector.StealJobs()
 	if err != nil {
-		klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+		return err
 	}
+	return jf.EnqueueJobs(jobs...)
+}
+
+// EnqueueJobs adds jobs to the local queue with overflow handling
+func (jf *JobFlow) EnqueueJobs(jobs ...*dao.Job) error {
+	var errs []error
 	for _, job := range jobs {
-		err = jf.localQueue.AddToFront(job)
+		err := jf.localQueue.AddToFront(job)
 		if err != nil {
-			klog.Error(err)
-		}
-		err = jf.tracker.AddRootJob(job)
-		if err != nil {
-			klog.Error(err)
+			errs = append(errs, err)
+			if joberrors.IsQueueFull(err) {
+				releaseErr := jf.collector.ReleaseJobByID(job.ID)
+				if releaseErr != nil {
+					klog.Error(releaseErr)
+				}
+			} else {
+				klog.Error(err)
+				return err
+			}
 		}
 	}
+	if len(errs) > 0 {
+		return fmt.Errorf("enqueue errors encountered: %v", errs)
+	}
+	return nil
 }
 
-// AddJob add a job to local queue
-func (jf *JobFlow) AddJob() {
-
-}
-
-func (jf *JobFlow) Quit() {
+// Stop gracefully shuts down the JobFlow
+func (jf *JobFlow) Stop() {
 	jf.stopOnce.Do(func() {
-		jf.worker.Quit()
+		jf.tracker.Stop()
 		close(jf.stopChan)
 		<-jf.stopped
 	})
 	// todo 逻辑优化 退出时log刷盘暂时放到这里
 	if log.Logger != nil {
-		_ = log.Logger.Flush()
+		if err := log.Logger.Flush(); err != nil {
+			klog.Errorf("Log flush failed: %v", err)
+		}
 	}
 }
