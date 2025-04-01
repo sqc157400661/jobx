@@ -5,14 +5,14 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"github.com/sqc157400661/jobx/pkg/dao"
 	joberrors "github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 type Pipeline struct {
 	RootID       int
 	JobID        int
-	Steps        []*dao.PipelineTask
+	Steps        []*model.PipelineTask
 	resSignal    chan<- TrackSignal
 	mutex        sync.RWMutex
 	isPaused     bool
@@ -21,9 +21,9 @@ type Pipeline struct {
 }
 
 // NewPipeline 初始化流水线,创建一个group的任务
-func NewPipeline(job dao.Job, res chan<- TrackSignal) (p *Pipeline, err error) {
-	var tasks, readyTasks []*dao.PipelineTask
-	tasks, err = dao.GetPipelineTasksByJobId(job.ID)
+func NewPipeline(job model.Job, res chan<- TrackSignal) (p *Pipeline, err error) {
+	var tasks, readyTasks []*model.PipelineTask
+	tasks, err = model.GetPipelineTasksByJobId(job.ID)
 	if err != nil {
 		return
 	}
@@ -56,7 +56,7 @@ func NewPipeline(job dao.Job, res chan<- TrackSignal) (p *Pipeline, err error) {
 
 // check Job status
 func (p *Pipeline) IsRunning() bool {
-	job, _, err := dao.GetJobById(p.JobID)
+	job, _, err := model.GetJobById(p.JobID)
 	if err != nil {
 		klog.Error(err)
 		return false

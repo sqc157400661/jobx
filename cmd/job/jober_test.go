@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/test"
 )
@@ -118,7 +118,7 @@ func TestJober(t *testing.T) {
 func TestWaitJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	err = WaitJob(400039, 10)
 	fmt.Println(err, 343454534)
 
@@ -129,7 +129,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	dao.JFDb = engine
+	model.JFDb = engine
 	jobFlow, _ := service.NewJobFlow("sqc_test_compute", engine)
 	_ = jobFlow.Register(
 		&providers.DemoTasker{},

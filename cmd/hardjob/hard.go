@@ -8,8 +8,8 @@ import (
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/cmd/job"
 	"github.com/sqc157400661/jobx/internal/helper"
-	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/options"
 )
 
@@ -29,8 +29,8 @@ import (
 // in the format of {"create.pg.pvlEnable": "true"}.
 func NewHardJob(name, owner, tenant string, input interface{}, opts ...options.JobOptionFunc) (jobId int, err error) {
 	inputMap, _ := helper.Struct2Map(input)
-	var jobDefs []*dao.JobDefinition
-	err = dao.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
+	var jobDefs []*model.JobDefinition
+	err = model.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
 	if err != nil {
 		return
 	}
@@ -79,7 +79,7 @@ func NewHardJob(name, owner, tenant string, input interface{}, opts ...options.J
 	return
 }
 
-func addPipelines(jober *job.Jober, jf *dao.JobDefinition) {
+func addPipelines(jober *job.Jober, jf *model.JobDefinition) {
 	var opts []options.JobOptionFunc
 	if jf.Retry > 0 {
 		opts = append(opts, options.RetryNum(jf.Retry))
@@ -113,8 +113,8 @@ func getPipelineInfo(pipe string) (name, action string) {
 }
 
 func GetHardJob(name, tenant string) (hardJobDefinition types.HardJobDefinition, err error) {
-	var jobDefs []*dao.JobDefinition
-	err = dao.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
+	var jobDefs []*model.JobDefinition
+	err = model.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
 	if err != nil {
 		return
 	}

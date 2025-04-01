@@ -3,7 +3,7 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -25,7 +25,7 @@ func TestWritingString(t *testing.T) {
 }
 func TestLogger(t *testing.T) {
 	engine, err := test.GetEngine()
-	dao.JFDb = engine
+	model.JFDb = engine
 	require.NoError(t, err)
 	logger := NewBufferLogger()
 	go func() {

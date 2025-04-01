@@ -12,8 +12,8 @@ import (
 	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/collector"
 	"github.com/sqc157400661/jobx/internal/queue"
-	"github.com/sqc157400661/jobx/pkg/dao"
 	joberrors "github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
@@ -63,6 +63,7 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 	for _, opt := range opts {
 		opt(&jf.opts)
 	}
+	model.JFDb = db
 	// Initialize components with proper isolation
 	jf.collector = collector.NewDefaultCollector(db, uid, collectorJobLen)
 	jf.worker = internal.NewDefaultWorkerPool(jf.opts.PoolLen)
@@ -142,7 +143,7 @@ func (jf *JobFlow) processJobEnqueue() {
 	}
 }
 
-func (jf *JobFlow) RunSyncJob(Job *dao.Job) (err error) {
+func (jf *JobFlow) RunSyncJob(Job *model.Job) (err error) {
 	return jf.tracker.StartJob(Job, true)
 }
 
@@ -156,7 +157,7 @@ func (jf *JobFlow) stealJobs() error {
 }
 
 // EnqueueJobs adds jobs to the local queue with overflow handling
-func (jf *JobFlow) EnqueueJobs(jobs ...*dao.Job) error {
+func (jf *JobFlow) EnqueueJobs(jobs ...*model.Job) error {
 	var errs []error
 	for _, job := range jobs {
 		err := jf.localQueue.AddToFront(job)

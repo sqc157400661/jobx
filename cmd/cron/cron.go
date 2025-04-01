@@ -2,12 +2,12 @@ package cron
 
 import (
 	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 // DeleteCronByID delete cronjob tasks
 func DeleteCronByID(id int) error {
-	cronJob, err := dao.GetCronByID(id)
+	cronJob, err := model.GetCronByID(id)
 	if err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func DeleteCronByID(id int) error {
 
 // UpdateCron modify the execution time of cronjob
 func UpdateCron(id int, spec string) error {
-	cronJob, err := dao.GetCronByID(id)
+	cronJob, err := model.GetCronByID(id)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func UpdateCron(id int, spec string) error {
 
 // RebootCronByID restarting the cronjob. please ensure that there are relevant jobs in the runner
 func RebootCronByID(id int) error {
-	cronJob, err := dao.GetCronByID(id)
+	cronJob, err := model.GetCronByID(id)
 	if err != nil {
 		return err
 	}

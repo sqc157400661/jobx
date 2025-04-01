@@ -6,7 +6,7 @@ import (
 	"github.com/sqc157400661/jobx/api/biz"
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/api/types/request"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"strconv"
 	"strings"
 )
@@ -63,7 +63,7 @@ func (e Job) GetPage(c *gin.Context) {
 		return
 	}
 	var count int64
-	var list []dao.Job
+	var list []model.Job
 	var ids []int64
 	if req.ID != "" {
 		idArr := strings.Split(req.ID, ",")
@@ -213,7 +213,7 @@ func (e Job) TaskList(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	var tasks []dao.PipelineTask
+	var tasks []model.PipelineTask
 	tasks, err = biz.TaskList(req)
 	e.OK(tasks, "查询成功")
 }

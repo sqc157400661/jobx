@@ -13,7 +13,7 @@ import (
 	"github.com/sqc157400661/jobx/api/router"
 	"github.com/sqc157400661/jobx/cmd/service"
 	"github.com/sqc157400661/jobx/hack/demo"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
@@ -38,7 +38,7 @@ func StartServer() (err error) {
 		WriteTimeout:   conf.GetDurationD("server.writeTimeout", 30) * time.Millisecond,
 		MaxHeaderBytes: 1 << 20,
 	}
-	jb, _ := service.NewJobFlow("sqc_test_compute", dao.JFDb)
+	jb, _ := service.NewJobFlow("sqc_test_compute", model.JFDb)
 	_ = jb.Register(
 		&providers.DemoTasker{},
 		&providers.Demo2Tasker{},
@@ -71,7 +71,7 @@ func initDB() (err error) {
 	if err != nil {
 		return err
 	}
-	dao.JFDb, err = mysql.NewMySQLEngine(dbConf, true, true)
+	model.JFDb, err = mysql.NewMySQLEngine(dbConf, true, true)
 	if err != nil {
 		return
 	}

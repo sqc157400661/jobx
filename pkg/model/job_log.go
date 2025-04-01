@@ -1,4 +1,4 @@
-package dao
+package model
 
 // JobLogs [...]
 type JobLogs struct {

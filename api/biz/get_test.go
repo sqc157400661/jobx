@@ -1,7 +1,7 @@
 package biz
 
 import (
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,7 +11,7 @@ import (
 func TestGet(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	job, err := Get(514)
 	assert.NoError(t, err)
 	t.Log(job.Job)

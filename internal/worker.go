@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/sqc157400661/jobx/internal/helper"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
@@ -85,7 +85,7 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 	}
 	var (
 		err          error
-		curTask      *dao.PipelineTask
+		curTask      *model.PipelineTask
 		taskProvider providers.TaskProvider
 	)
 	defer func() {
@@ -175,7 +175,7 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 }
 
 // runWithRetry executes task with retry logic. Uses exponential backoff.
-func (w *DefaultWorkerPool) runWithRetry(task *dao.PipelineTask, fn func(int) error, sleep time.Duration) (err error) {
+func (w *DefaultWorkerPool) runWithRetry(task *model.PipelineTask, fn func(int) error, sleep time.Duration) (err error) {
 	for i := 1; i <= task.Retry; i++ {
 		if err = fn(int(task.Retries)); err != nil {
 			err = errors.Wrapf(err, "run err with retry nu:%d", i)

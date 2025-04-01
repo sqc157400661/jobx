@@ -8,7 +8,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 type trackItem struct {
@@ -20,7 +20,7 @@ type trackItem struct {
 	mutex    sync.RWMutex
 }
 
-func NewTrackItem(jobs []dao.Job, trackSignal chan TrackSignal) (ti *trackItem, err error) {
+func NewTrackItem(jobs []model.Job, trackSignal chan TrackSignal) (ti *trackItem, err error) {
 	num := len(jobs)
 	if num == 0 {
 		return
@@ -56,7 +56,7 @@ func NewTrackItem(jobs []dao.Job, trackSignal chan TrackSignal) (ti *trackItem, 
 
 func (t *trackItem) DoneOne(jobID int) {
 	// update job status to Success
-	errDb := dao.UpdateJobStateByID(jobID, &dao.State{
+	errDb := model.UpdateJobStateByID(jobID, &model.State{
 		Phase:  config.PhaseTerminated,
 		Status: config.StatusSuccess,
 	})
@@ -84,7 +84,7 @@ func (t *trackItem) AddPaused() {
 
 func (t *trackItem) FailOne(jobID int, err error) {
 	// update job status to Fail
-	errDb := dao.UpdateJobStateByID(jobID, &dao.State{
+	errDb := model.UpdateJobStateByID(jobID, &model.State{
 		Phase:  config.PhaseTerminated,
 		Status: config.StatusFail,
 		Reason: err.Error(),

@@ -1,4 +1,4 @@
-package dao
+package model
 
 // JobDefinition [...]
 type JobDefinition struct {

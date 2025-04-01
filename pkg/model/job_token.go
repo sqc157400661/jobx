@@ -1,4 +1,4 @@
-package dao
+package model
 
 // JobToken
 type JobToken struct {

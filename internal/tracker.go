@@ -10,8 +10,8 @@ import (
 
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/queue"
-	"github.com/sqc157400661/jobx/pkg/dao"
 	joberrors "github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 type Tracker interface {
@@ -22,7 +22,7 @@ type Tracker interface {
 	// Waiting returns a channel that signals when the queue is empty
 	Waiting() <-chan struct{}
 	// StartJob initiates tracking and execution of a root job
-	StartJob(rootJob *dao.Job, isSync bool) (err error)
+	StartJob(rootJob *model.Job, isSync bool) (err error)
 }
 
 type DefaultTracker struct {
@@ -97,17 +97,17 @@ func (t *DefaultTracker) Waiting() <-chan struct{} {
 }
 
 // StartJob initializes tracking for a new root job
-func (t *DefaultTracker) StartJob(rootJob *dao.Job, isSync bool) (err error) {
+func (t *DefaultTracker) StartJob(rootJob *model.Job, isSync bool) (err error) {
 	// if it already exists in tracker,return
 	if t.get(rootJob.ID) != nil {
 		return
 	}
-	var jobs []dao.Job
+	var jobs []model.Job
 	if rootJob.Runnable == config.RunnableYes {
 		rootJob.RootID = rootJob.ID
-		jobs = []dao.Job{*rootJob}
+		jobs = []model.Job{*rootJob}
 	} else {
-		jobs, err = dao.GetChildRunableJobsByRootId(rootJob.ID)
+		jobs, err = model.GetChildRunableJobsByRootId(rootJob.ID)
 	}
 	if err != nil {
 		err = errors.Wrapf(err, "GetChildRunableJobsByRootId err rootID:%d", rootJob.ID)
@@ -125,14 +125,14 @@ func (t *DefaultTracker) StartJob(rootJob *dao.Job, isSync bool) (err error) {
 	return t.addTrackItem(rootJob.ID, jobs, isSync)
 }
 
-func (t *DefaultTracker) addTrackItem(rootId int, jobs []dao.Job, isSync bool) (err error) {
+func (t *DefaultTracker) addTrackItem(rootId int, jobs []model.Job, isSync bool) (err error) {
 	var ti *trackItem
 	ti, err = NewTrackItem(jobs, t.TrackSignal)
 	if err != nil {
 		return
 	}
 	if ti.total == ti.finished {
-		return dao.UpdateJobStateByID(rootId, &dao.State{
+		return model.UpdateJobStateByID(rootId, &model.State{
 			Phase:  config.PhaseTerminated,
 			Status: config.StatusSuccess,
 		})
@@ -193,30 +193,30 @@ func (t *DefaultTracker) track() {
 		// note that only the root job and runnable job have a state, while the job in the middle layer has no state
 		if ti.IsFinished() {
 			t.localQueue.CompleteTask(rootID)
-			var state *dao.State
+			var state *model.State
 			var err error
 			if ti.IsSucceeded() {
-				state = &dao.State{
+				state = &model.State{
 					Phase:  config.PhaseTerminated,
 					Status: config.StatusSuccess,
 				}
-				err = dao.ReleaseTokens(rootID)
+				err = model.ReleaseTokens(rootID)
 				if err != nil {
 					klog.Errorf("ReleaseTokens err:%+v rootID:%d", err, rootID)
 				}
 			} else if ti.IsPaused() {
-				state = &dao.State{
+				state = &model.State{
 					Phase:  config.PhaseRunning,
 					Status: config.StatusPause,
 				}
 			} else {
-				state = &dao.State{
+				state = &model.State{
 					Phase:  config.PhaseTerminated,
 					Status: config.StatusFail,
 				}
 			}
 			t.remove(rootID)
-			err = dao.UpdateJobStateByID(rootID, state)
+			err = model.UpdateJobStateByID(rootID, state)
 			if err != nil {
 				klog.Errorf("TriggerChord err:%+v rootID:%d", err, rootID)
 				return

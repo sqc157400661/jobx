@@ -1,4 +1,4 @@
-package dao
+package model
 
 import (
 	"github.com/sqc157400661/jobx/config"

@@ -2,7 +2,7 @@ package cron
 
 import (
 	"fmt"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/require"
 	"net/url"
@@ -14,7 +14,7 @@ import (
 func TestRunner(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	runner, err := NewCronRunner("1")
 	require.NoError(t, err)
 	err = runner.Start()

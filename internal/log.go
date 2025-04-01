@@ -2,8 +2,8 @@ package internal
 
 import (
 	"github.com/sqc157400661/jobx/internal/helper"
-	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/log"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"k8s.io/klog/v2"
 	"strings"
 	"sync"
@@ -87,8 +87,8 @@ func (l *BufferLogger) Flush() (err error) {
 	currentSet := l.set
 	// 对currentSet进行刷盘清理
 	var data string
-	newLogs := make([]*dao.JobLogs, 0)
-	var jobLog dao.JobLogs
+	newLogs := make([]*model.JobLogs, 0)
+	var jobLog model.JobLogs
 	for id, buf := range currentSet.Items() {
 		data = buf.String()
 		buf.Reset()
@@ -98,7 +98,7 @@ func (l *BufferLogger) Flush() (err error) {
 		}
 		// 拼接批量插入的数据
 		// 查询数据库中是否存在有记录，有记录进行append
-		jobLog, err = dao.GetLogByEventID(id)
+		jobLog, err = model.GetLogByEventID(id)
 		if err != nil {
 			klog.Errorf("jobLog get by eventID Err:%s,eventID:%d", err.Error(), id)
 			continue
@@ -112,11 +112,11 @@ func (l *BufferLogger) Flush() (err error) {
 			continue
 		}
 		// 如果没有记录则进行插入操作，组装批量插入的数据
-		newLogs = append(newLogs, &dao.JobLogs{EventID: id, Result: data})
+		newLogs = append(newLogs, &model.JobLogs{EventID: id, Result: data})
 	}
 	// 如果有待批量插入的数据，则进行插入操作
 	if len(newLogs) > 0 {
-		err = dao.BatchAddLogs(newLogs)
+		err = model.BatchAddLogs(newLogs)
 		if err != nil {
 			klog.Errorf("BatchAddLogs Err:%s,logs:%+v", err.Error(), newLogs)
 		}

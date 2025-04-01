@@ -8,7 +8,7 @@ import (
 
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/names"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 )
 
 type Collector interface {
-	StealJobs() (jobs []*dao.Job, err error)
+	StealJobs() (jobs []*model.Job, err error)
 	ReleaseJobs() (err error)
 	ReleaseJobByID(jobId int) (err error)
 }
@@ -42,12 +42,12 @@ func NewDefaultCollector(engine *xorm.Engine, serverUid string, len int) (collec
 }
 
 // 启动初始化的时候检查未完成的job队列
-func (c *DefaultCollector) loadCheckUndoJobs(uid string) (jobs []dao.Job, err error) {
+func (c *DefaultCollector) loadCheckUndoJobs(uid string) (jobs []model.Job, err error) {
 	err = c.engine.Where(checkUndoJobsSqlTmpl, uid, config.PhaseTerminated).Find(&jobs)
 	return
 }
 
-func (c *DefaultCollector) StealJobs() (jobs []*dao.Job, err error) {
+func (c *DefaultCollector) StealJobs() (jobs []*model.Job, err error) {
 	var num int64
 	num, err = c.steal()
 	if err != nil || num == 0 {
@@ -58,7 +58,7 @@ func (c *DefaultCollector) StealJobs() (jobs []*dao.Job, err error) {
 }
 
 func (c *DefaultCollector) ReleaseJobs() (err error) {
-	var jobs []dao.Job
+	var jobs []model.Job
 	err = c.engine.In("phase", []string{config.PhaseReady, config.PhaseRunning}).Where("locker=?", c.serverUid).Find(&jobs)
 	if err != nil {
 		return

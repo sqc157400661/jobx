@@ -5,13 +5,13 @@ import (
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/helper"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 // Retry Only the failed task can be retried
 func Retry(req types.RetryReq) (err error) {
-	model := dao.JFDb
-	var task dao.PipelineTask
+	model := model.JFDb
+	var task model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
 		return
@@ -20,9 +20,9 @@ func Retry(req types.RetryReq) (err error) {
 		err = fmt.Errorf("task status is not failed, retry is not allowed")
 		return
 	}
-	var rootJob dao.Job
+	var rootJob model.Job
 	var has bool
-	rootJob, has, err = dao.GetRootJobByJobId(task.JobID)
+	rootJob, has, err = model.GetRootJobByJobId(task.JobID)
 	if err != nil {
 		return
 	}
@@ -38,7 +38,7 @@ func Retry(req types.RetryReq) (err error) {
 		err = fmt.Errorf("root job is locking for run, plase wait")
 		return
 	}
-	state := dao.State{
+	state := model.State{
 		Phase:  config.PhaseReady,
 		Status: config.StatusPending,
 	}
@@ -46,7 +46,7 @@ func Retry(req types.RetryReq) (err error) {
 	if req.Input != nil && len(req.Input) > 0 {
 		task.Input = req.Input
 	}
-	_, err = model.Cols("phase", "status", "input").Update(&task, &dao.PipelineTask{ID: task.ID})
+	_, err = model.Cols("phase", "status", "input").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -57,8 +57,8 @@ func Retry(req types.RetryReq) (err error) {
 
 // Pause Only tasks can be pause
 func Pause(req types.PauseReq) (err error) {
-	model := dao.JFDb
-	var task dao.PipelineTask
+	model := model.JFDb
+	var task model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
 		return
@@ -72,7 +72,7 @@ func Pause(req types.PauseReq) (err error) {
 		return
 	}
 	task.Status = config.StatusPause
-	_, err = model.Cols("phase", "status").Update(&task, &dao.PipelineTask{ID: task.ID})
+	_, err = model.Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -81,9 +81,9 @@ func Pause(req types.PauseReq) (err error) {
 
 // PauseJob todo check root?
 func PauseJob(req types.PauseReq) (err error) {
-	var job dao.Job
+	var job model.Job
 	var hasJob bool
-	job, hasJob, err = dao.GetJobById(req.JobID)
+	job, hasJob, err = model.GetJobById(req.JobID)
 	if !hasJob || err != nil {
 		return
 	}
@@ -91,19 +91,19 @@ func PauseJob(req types.PauseReq) (err error) {
 		err = fmt.Errorf("job(%d) status is not running, pause is not allowed", req.JobID)
 		return
 	}
-	var tasks []*dao.PipelineTask
-	tasks, err = dao.GetPipelineTasksByJobId(req.JobID)
+	var tasks []*model.PipelineTask
+	tasks, err = model.GetPipelineTasksByJobId(req.JobID)
 	if err != nil {
 		return
 	}
-	model := dao.JFDb
+	model := model.JFDb
 	for _, task := range tasks {
 		if !task.CanPause() {
 			continue
 		}
 		if task.IsReady() {
 			task.Status = config.StatusPause
-			_, err = model.Cols("phase", "status").Update(task, &dao.PipelineTask{ID: task.ID})
+			_, err = model.Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
 			if err != nil {
 				return
 			}
@@ -116,9 +116,9 @@ func PauseJob(req types.PauseReq) (err error) {
 
 // RestartJob todo check root?
 func RestartJob(req types.RestartReq) (err error) {
-	var job dao.Job
+	var job model.Job
 	var hasJob bool
-	job, hasJob, err = dao.GetJobById(req.JobID)
+	job, hasJob, err = model.GetJobById(req.JobID)
 	if !hasJob || err != nil {
 		return
 	}
@@ -126,17 +126,17 @@ func RestartJob(req types.RestartReq) (err error) {
 		err = fmt.Errorf("job(%d) status is finished or discarded, restart is not allowed", req.JobID)
 		return
 	}
-	var tasks []*dao.PipelineTask
-	tasks, err = dao.GetPipelineTasksByJobId(req.JobID)
+	var tasks []*model.PipelineTask
+	tasks, err = model.GetPipelineTasksByJobId(req.JobID)
 	if err != nil {
 		return
 	}
-	model := dao.JFDb
+	model := model.JFDb
 	for _, task := range tasks {
 		if task.IsPausing() {
 			task.Status = config.StatusPending
 			task.Phase = config.PhaseReady
-			_, err = model.Cols("phase", "status").Update(task, &dao.PipelineTask{ID: task.ID})
+			_, err = model.Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
 			if err != nil {
 				return
 			}
@@ -152,9 +152,9 @@ func RestartJob(req types.RestartReq) (err error) {
 
 // Skip skip one task
 func Skip(req types.SkipReq) (err error) {
-	model := dao.JFDb
-	var task dao.PipelineTask
-	var next *dao.PipelineTask
+	model := model.JFDb
+	var task model.PipelineTask
+	var next *model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
 		return
@@ -167,9 +167,9 @@ func Skip(req types.SkipReq) (err error) {
 		err = fmt.Errorf("task status is discarded, skip is not allowed")
 		return
 	}
-	var rootJob dao.Job
+	var rootJob model.Job
 	var has bool
-	rootJob, has, err = dao.GetRootJobByJobId(task.JobID)
+	rootJob, has, err = model.GetRootJobByJobId(task.JobID)
 	if err != nil {
 		return
 	}
@@ -182,7 +182,7 @@ func Skip(req types.SkipReq) (err error) {
 		return
 	}
 	task.Status = config.StatusSkip
-	_, err = model.Cols("phase", "status").Update(&task, &dao.PipelineTask{ID: task.ID})
+	_, err = model.Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -192,13 +192,13 @@ func Skip(req types.SkipReq) (err error) {
 	}
 	if next.ID > 0 {
 		next.Context = helper.UnsafeMergeMap(next.Context, task.Context)
-		_, err = model.Cols("context").Update(next, &dao.PipelineTask{ID: next.ID})
+		_, err = model.Cols("context").Update(next, &model.PipelineTask{ID: next.ID})
 		if err != nil {
 			return
 		}
 	}
 	if rootJob.IsFailed() {
-		state := dao.State{
+		state := model.State{
 			Phase:  config.PhaseReady,
 			Status: config.StatusPending,
 		}
@@ -210,10 +210,10 @@ func Skip(req types.SkipReq) (err error) {
 
 // Discard Discard a job and clean up the bizID， Only the failed task can be discarded
 func Discard(req types.DiscardReq) (err error) {
-	model := dao.JFDb
-	var rootJob dao.Job
+	model := model.JFDb
+	var rootJob model.Job
 	var has bool
-	rootJob, has, err = dao.GetRootJobByJobId(req.JobID)
+	rootJob, has, err = model.GetRootJobByJobId(req.JobID)
 	if err != nil {
 		return
 	}
@@ -225,7 +225,7 @@ func Discard(req types.DiscardReq) (err error) {
 		err = fmt.Errorf("root job is not failed, Abandon is not allowed")
 		return
 	}
-	err = dao.ReleaseTokens(rootJob.RootID)
+	err = model.ReleaseTokens(rootJob.RootID)
 	if err != nil {
 		return
 	}
@@ -236,10 +236,10 @@ func Discard(req types.DiscardReq) (err error) {
 
 // ForceDiscard Discard a job and clean up the bizID
 func ForceDiscard(req types.DiscardReq) (err error) {
-	model := dao.JFDb
-	var rootJob dao.Job
+	model := model.JFDb
+	var rootJob model.Job
 	var has bool
-	rootJob, has, err = dao.GetRootJobByJobId(req.JobID)
+	rootJob, has, err = model.GetRootJobByJobId(req.JobID)
 	if err != nil {
 		return
 	}
@@ -247,7 +247,7 @@ func ForceDiscard(req types.DiscardReq) (err error) {
 		err = fmt.Errorf("root job not found jobID:%d", req.JobID)
 		return
 	}
-	err = dao.ReleaseTokens(rootJob.RootID)
+	err = model.ReleaseTokens(rootJob.RootID)
 	if err != nil {
 		return
 	}
@@ -270,8 +270,8 @@ func ForceDiscard(req types.DiscardReq) (err error) {
 //
 //}
 
-func getTaskByID(id int) (task dao.PipelineTask, err error) {
-	_, err = dao.JFDb.ID(id).Get(&task)
+func getTaskByID(id int) (task model.PipelineTask, err error) {
+	_, err = model.JFDb.ID(id).Get(&task)
 	if err != nil {
 		return
 	}

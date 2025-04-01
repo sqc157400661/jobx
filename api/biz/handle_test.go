@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/internal/helper"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +16,7 @@ import (
 func TestRetry(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.RetryReq{
 		TaskID: 935,
 		//IDs:   []int64{514, 510},
@@ -28,7 +28,7 @@ func TestRetry(t *testing.T) {
 func TestPause(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.PauseReq{
 		TaskID: 935,
 		//IDs:   []int64{514, 510},
@@ -40,7 +40,7 @@ func TestPause(t *testing.T) {
 func TestPauseJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.PauseReq{
 		JobID: 132,
 		//IDs:   []int64{514, 510},
@@ -52,7 +52,7 @@ func TestPauseJob(t *testing.T) {
 func TestRestartJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.RestartReq{
 		JobID: 132,
 		//IDs:   []int64{514, 510},
@@ -64,7 +64,7 @@ func TestRestartJob(t *testing.T) {
 func TestAbandon(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.DiscardReq{
 		JobID: 11111193,
 		//IDs:   []int64{514, 510},
@@ -76,14 +76,14 @@ func TestAbandon(t *testing.T) {
 func TestSkip(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	now := new(dao.PipelineTask)
-	dao.JFDb = engine
-	_, err = dao.JFDb.Where("id=?", 1443).Asc("id").Get(now)
+	now := new(model.PipelineTask)
+	model.JFDb = engine
+	_, err = model.JFDb.Where("id=?", 1443).Asc("id").Get(now)
 	next, _ := now.Next()
 	fmt.Println()
 	next.Context = helper.UnsafeMergeMap(next.Context, now.Context)
 	fmt.Println(next.Context)
-	_, err = dao.JFDb.Cols("context").ID(next.ID).Update(next)
+	_, err = model.JFDb.Cols("context").ID(next.ID).Update(next)
 	assert.NoError(t, err)
 }
 

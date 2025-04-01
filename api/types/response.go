@@ -1,9 +1,9 @@
 package types
 
-import "github.com/sqc157400661/jobx/pkg/dao"
+import "github.com/sqc157400661/jobx/pkg/model"
 
 type JobResult struct {
-	Job       *dao.Job
-	ChildJobs []*dao.Job
-	Task      []*dao.PipelineTask
+	Job       *model.Job
+	ChildJobs []*model.Job
+	Task      []*model.PipelineTask
 }

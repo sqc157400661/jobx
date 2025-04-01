@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"github.com/go-xorm/xorm"
 	"github.com/sqc157400661/jobx/api/types"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"time"
 )
 
-func JobList(req types.JobListReq) (jobs []dao.Job, total int64, err error) {
+func JobList(req types.JobListReq) (jobs []model.Job, total int64, err error) {
 	if req.Page == 0 {
 		req.Page = 1
 	}
@@ -17,7 +17,7 @@ func JobList(req types.JobListReq) (jobs []dao.Job, total int64, err error) {
 	}
 	layout := "2006-01-02 15:04:05"
 	var t time.Time
-	model := dao.JFDb
+	model := model.JFDb
 	var sess *xorm.Session
 	sess = model.Where("parent_id=?", req.ParentId)
 	if req.ID > 0 {
@@ -58,14 +58,14 @@ func JobList(req types.JobListReq) (jobs []dao.Job, total int64, err error) {
 	if req.InputContain != "" {
 		sess = sess.And("input like ?", "%"+req.InputContain+"%")
 	}
-	job := new(dao.Job)
+	job := new(model.Job)
 	total, err = sess.Clone().Count(job)
 	err = sess.Desc("id").Limit(req.Size, req.Size*(req.Page-1)).Find(&jobs)
 	return
 }
 
-func TaskList(req types.TaskListReq) (tasks []dao.PipelineTask, err error) {
-	model := dao.JFDb
+func TaskList(req types.TaskListReq) (tasks []model.PipelineTask, err error) {
+	model := model.JFDb
 	var sess *xorm.Session
 	sess = model.NewSession()
 	if req.JobId > 0 {

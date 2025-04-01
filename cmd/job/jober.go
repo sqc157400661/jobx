@@ -9,15 +9,15 @@ import (
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/helper"
-	"github.com/sqc157400661/jobx/pkg/dao"
 	"github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
 // job拥有者
 type Jober struct {
-	Job         *dao.Job
+	Job         *model.Job
 	Level       int
 	Pipeline    *internal.Pipeline
 	root        *Jober
@@ -34,7 +34,7 @@ func NewJober(name, owner, tenant string, opts ...options.JobOptionFunc) *Jober 
 		opt(&o)
 	}
 	job := &Jober{
-		Job: &dao.Job{
+		Job: &model.Job{
 			Name:   name,
 			Desc:   o.Desc,
 			Pause:  o.Pause,
@@ -44,7 +44,7 @@ func NewJober(name, owner, tenant string, opts ...options.JobOptionFunc) *Jober 
 			Locker: o.PreLockUid,
 			Owner:  owner,
 			Tenant: tenant,
-			State: dao.State{
+			State: model.State{
 				Phase:  config.PhaseReady,
 				Status: config.StatusPending,
 			},
@@ -73,7 +73,7 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 	if j.Pipeline == nil {
 		j.Pipeline = &internal.Pipeline{}
 	}
-	t := &dao.PipelineTask{
+	t := &model.PipelineTask{
 		Name:   name,
 		Action: action,
 		Desc:   providers.GetDesc(action, o.Desc),
@@ -81,7 +81,7 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 		Input:  helper.UnsafeMergeMap(o.Input, j.Job.Input),
 		Env:    helper.UnsafeMergeMap(o.Env, j.Job.Env),
 		Retry:  o.Retry,
-		State: dao.State{
+		State: model.State{
 			Phase:  config.PhaseReady,
 			Status: config.StatusPending,
 		},
@@ -116,7 +116,8 @@ func (j *Jober) AddJob(job *Jober) *Jober {
 }
 
 func (j *Jober) Exec() (err error) {
-	sess := dao.JFDb.NewSession()
+	sess := model.JFDb.NewSession()
+	//jobStorage := storage.NewJobStorage(sess)
 	defer sess.Close()
 	defer func() {
 		if err != nil {
@@ -138,8 +139,8 @@ func (j *Jober) Exec() (err error) {
 	}
 	if root.Job.BizID != "" {
 		var has bool
-		var existJob dao.Job
-		existJob, has, err = dao.GetJobByBizId(root.Job.BizID)
+		var existJob model.Job
+		existJob, has, err = model.GetJobByBizId(root.Job.BizID)
 		if err != nil {
 			return err
 		}
@@ -150,7 +151,7 @@ func (j *Jober) Exec() (err error) {
 	}
 	if len(root.Tokens) > 0 {
 		var rootId int
-		rootId, err = dao.CheckTokens(root.Tokens)
+		rootId, err = model.CheckTokens(root.Tokens)
 		if err != nil {
 			j.Job.ID = rootId
 			return
@@ -196,7 +197,7 @@ func (j *Jober) Exec() (err error) {
 			return
 		}
 	}
-	err = dao.CreateTokens(root.Job.ID, root.Tokens)
+	err = model.CreateTokens(root.Job.ID, root.Tokens)
 	if err != nil {
 		return
 	}
@@ -237,13 +238,13 @@ func waitJob(ctx context.Context, jobId int, done chan struct{}) {
 	}()
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop() // 确保在函数返回时停止定时器
-	var job dao.Job
+	var job model.Job
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			_, _ = dao.JFDb.ID(jobId).Get(&job)
+			_, _ = model.JFDb.ID(jobId).Get(&job)
 			if job.State.IsSuccess() {
 				close(done)
 				return

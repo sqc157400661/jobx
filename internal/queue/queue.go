@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sqc157400661/jobx/pkg/dao"
 	joberrors "github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 // JobTask with enqueue timestamp
 type JobTask struct {
-	*dao.Job
+	*model.Job
 	EnqueueTime time.Time // Time when task was enqueued 任务入队时间
 }
 
@@ -40,7 +40,7 @@ func NewTaskQueue(maxSize int) *TaskQueue {
 
 // AddToFront adds a task to the front of the queue with timestamp
 // 添加任务到队列头部并记录时间戳
-func (q *TaskQueue) AddToFront(job *dao.Job) error {
+func (q *TaskQueue) AddToFront(job *model.Job) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -55,7 +55,7 @@ func (q *TaskQueue) AddToFront(job *dao.Job) error {
 
 // AddToBack adds a task to the end of the queue with timestamp
 // 添加任务到队列尾部并记录时间戳
-func (q *TaskQueue) AddToBack(job *dao.Job) error {
+func (q *TaskQueue) AddToBack(job *model.Job) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -70,7 +70,7 @@ func (q *TaskQueue) AddToBack(job *dao.Job) error {
 
 // Dequeue moves a task from pending to processing state
 // 从待处理队列取出任务并标记为执行中状态
-func (q *TaskQueue) Dequeue() (*dao.Job, error) {
+func (q *TaskQueue) Dequeue() (*model.Job, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 

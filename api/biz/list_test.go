@@ -2,7 +2,7 @@ package biz
 
 import (
 	"github.com/sqc157400661/jobx/api/types"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,7 +12,7 @@ import (
 func TestJobList(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.JobListReq{
 		Owner: "sqc",
 		//IDs:   []int64{514, 510},
@@ -27,7 +27,7 @@ func TestJobList(t *testing.T) {
 func TestTaskList(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	dao.JFDb = engine
+	model.JFDb = engine
 	var req = types.TaskListReq{
 		JobId: 591,
 	}

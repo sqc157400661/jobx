@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/robfig/cron/v3"
 	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/pkg/dao"
+	"github.com/sqc157400661/jobx/pkg/model"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sync"
@@ -50,8 +50,8 @@ func (r *Runner) Start() (err error) {
 		// 每隔1分钟中check db
 		_, err = r.cron.AddFunc("0 */1 * * * *", func() {
 
-			var crons []*dao.JobCron
-			crons, err = dao.CollectCron(r.uid)
+			var crons []*model.JobCron
+			crons, err = model.CollectCron(r.uid)
 			if err != nil {
 				klog.Errorf("collectCron err %s,uid:%s", err.Error(), r.uid)
 				return
@@ -63,7 +63,7 @@ func (r *Runner) Start() (err error) {
 				if c.IsDeleted() {
 					r.remove(c.EntryID)
 					// 从数据库删除该定时任务数据
-					_, err = dao.JFDb.ID(c.ID).Delete(c)
+					_, err = model.JFDb.ID(c.ID).Delete(c)
 					if err != nil {
 						klog.Errorf("delete cronjob err %s,uid:%s cronId:%d", err.Error(), r.uid, c.ID)
 						continue
@@ -150,8 +150,8 @@ func (r *Runner) Add(spec, name string, job cron.Job) (id int64, err error) {
 	r.cronJobs[name] = job
 	r.mutex.Unlock()
 	// 判断是否存在
-	var cronData *dao.JobCron
-	cronData, err = dao.GetCronByExecContent(name)
+	var cronData *model.JobCron
+	cronData, err = model.GetCronByExecContent(name)
 	if err != nil {
 		return
 	}
@@ -159,7 +159,7 @@ func (r *Runner) Add(spec, name string, job cron.Job) (id int64, err error) {
 		id = cronData.ID
 		return
 	}
-	cronData = &dao.JobCron{
+	cronData = &model.JobCron{
 		ExecType:    config.CronExecJobType,
 		ExecContent: name,
 		Spec:        spec,
