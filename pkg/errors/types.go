@@ -24,6 +24,8 @@ var ErrorReasonMap = map[int]string{
 	NoTaskFoundCode:            NoTaskFoundReason,
 	NoRunnablePipelineTaskCode: NoRunnablePipelineTaskReason,
 	InvalidParameterCode:       InvalidParameterReason,
+	JobDefExistCode:            JobDefExistReason,
+	CronJobExistCode:           CronJobExistReason,
 }
 
 const (
@@ -34,10 +36,14 @@ const (
 	InvalidParameterCode   = 101
 	InvalidParameterReason = "Invalid parameter"
 
-	BIZExist         = 1001
-	BIZExistReason   = "biz conflict,biz uid already exists"
-	TokenExist       = 1002
-	TokenExistReason = "Token conflict, related tasks may already be in progress"
+	BIZExist           = 1001
+	BIZExistReason     = "biz conflict,biz uid already exists"
+	TokenExist         = 1002
+	TokenExistReason   = "Token conflict, related tasks may already be in progress"
+	JobDefExistCode    = 1003
+	JobDefExistReason  = "job def exist"
+	CronJobExistCode   = 1004
+	CronJobExistReason = "cronjob exist"
 
 	NoJobProvider                = 2001
 	NoJobProviderReason          = "Task provider not found"
@@ -72,4 +78,7 @@ var (
 	ErrQueueFullError    = New(LocalQueueFullCode, "")
 	ErrEmptyQueueError   = New(ErrEmptyQueueCode, "")
 	ErrTaskNotFoundError = New(ErrTaskNotFoundCode, "")
+
+	ErrJobDefExist  = New(JobDefExistCode, "")
+	ErrCronJobExist = New(CronJobExistCode, "")
 )

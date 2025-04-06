@@ -179,3 +179,17 @@ func BatchAddLogs(logs []*JobLogs) (err error) {
 	_, err = DB().Insert(&logs)
 	return
 }
+
+// GetJobDefByName ...
+func GetJobDefByName(name string) (jobCron *JobDefinition, err error) {
+	jobCron = &JobDefinition{}
+	_, err = DB().Where("name=?", name).Get(jobCron)
+	return
+}
+
+// GetCronByName ...
+func IsCronJobExist(tenant, appName, name string) (jobCron *JobCron, err error) {
+	jobCron = &JobCron{}
+	_, err = DB().Where("name=? and app_name=? and tenant=?", name, appName, tenant).Get(jobCron)
+	return
+}

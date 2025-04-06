@@ -9,6 +9,8 @@ import (
 // JobCron
 type JobCron struct {
 	ID             int64     `gorm:"primaryKey;column:id" json:"id" xorm:"id pk autoincr"`
+	Name           string    `gorm:"column:name" json:"name" xorm:"name"`                                     // 任务名称
+	Owner          string    `gorm:"column:owner" json:"owner" xorm:"owner"`                                  // 任务归属人
 	EntryID        int       `gorm:"column:entry_id" json:"entry_id" xorm:"entry_id"`                         // 定时任务id
 	Spec           string    `gorm:"column:spec" json:"spec" xorm:"spec"`                                     // 定时表达式
 	ExecType       string    `gorm:"column:exec_type" json:"exec_type" xorm:"exec_type"`                      // 执行任务类型，如job、func、shell
@@ -28,6 +30,11 @@ func (j *JobCron) Run() {
 
 func (j *JobCron) TableName() string {
 	return "job_cron"
+}
+
+func (j *JobCron) Save() (err error) {
+	_, err = DB().InsertOne(j)
+	return
 }
 
 func (j *JobCron) TouchEntryID(id int) (err error) {

@@ -34,3 +34,7 @@ const (
 	// Pre-Locking
 	PreLockPrefix = "pre-"
 )
+
+const (
+	JobExecType = "job"
+)

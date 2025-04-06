@@ -71,30 +71,6 @@ func ProcessYAML(yamlContent []byte) (int, error) {
 	return rootJob.ID, nil
 }
 
-func SaveJobsFromDef02(parentDef *JobDef, parentJob *model.Job) error {
-	for _, childDef := range parentDef.Jobs {
-		childJob, err := createJobFromDef(&childDef, parentJob)
-		if err != nil {
-			return fmt.Errorf("failed to create child job %s: %w", childDef.Name, err)
-		}
-
-		// Update hierarchy fields
-		childJob.Level = parentJob.Level + 1
-		childJob.Path = fmt.Sprintf("%s,%d", parentJob.Path, childJob.ID)
-
-		// Update job with hierarchy info
-		if err := childJob.Save(); err != nil {
-			return fmt.Errorf("failed to update child job %s: %w", childDef.Name, err)
-		}
-
-		// Process any nested jobs recursively
-		if err := SaveJobsFromDef02(&childDef, childJob); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func SaveJobsFromDef(parentDef JobDef) (rootId int, err error) {
 	sess := model.DB().NewSession()
 	err = sess.Begin()

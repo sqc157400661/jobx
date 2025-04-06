@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/internal/job"
@@ -14,6 +15,92 @@ import (
 	"time"
 )
 
+type Cronjob struct {
+	name    string
+	spec    string
+	owner   string
+	tenant  string
+	appName string
+}
+
+func NewCronjob(spec, name, owner, tenant, appName string) (*Cronjob, error) {
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	_, err := parser.Parse(spec)
+	if err != nil {
+		return nil, err
+	}
+	return &Cronjob{
+		spec:    spec,
+		name:    name,
+		owner:   owner,
+		tenant:  tenant,
+		appName: appName,
+	}, nil
+}
+
+func (c *Cronjob) ExecJob(job *Jober) (err error) {
+	if job == nil {
+		return nil
+	}
+	sess := model.DB().NewSession()
+	//jobStorage := storage.NewJobStorage(sess)
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = sess.Rollback()
+		} else {
+			_ = sess.Commit()
+		}
+	}()
+	job.Name = fmt.Sprintf("%s_%s", c.name, job.Name)
+	job.AppName = c.appName
+	job.Tenant = c.tenant
+	job.Owner = c.owner
+	existCronJob, err := model.IsCronJobExist(c.tenant, c.appName, c.name)
+	if err != nil {
+		return
+	}
+	if existCronJob.ID > 0 {
+		return errors.ErrCronJobExist
+	}
+	jobDef, err := model.GetJobDefByName(job.Name)
+	if err != nil {
+		return err
+	}
+	if jobDef.ID > 0 {
+		return errors.ErrJobDefExist
+	} else {
+		var yamlConf string
+		yamlConf, err = job.ToYAML()
+		if err != nil {
+			return err
+		}
+		jobDef = &model.JobDefinition{
+			Name:     job.Name,
+			AppName:  c.appName,
+			Tenant:   c.tenant,
+			YamlConf: yamlConf,
+		}
+		if err = jobDef.Save(); err != nil {
+			return err
+		}
+	}
+	cronJob := model.JobCron{
+		Name:        c.name,
+		Owner:       c.owner,
+		Status:      config.CronStatusValid,
+		Spec:        c.spec,
+		ExecType:    config.JobExecType,
+		ExecContent: job.Name,
+		Tenant:      c.tenant,
+		AppName:     c.appName,
+	}
+	return cronJob.Save()
+}
+
 // Jober 构建Job定义的链式调用结构体
 type Jober struct {
 	job.JobDef
@@ -23,6 +110,7 @@ type Jober struct {
 	sync        bool     `yaml:"-"`
 	syncTimeOut int      `yaml:"-"`
 	JobId       int      `yaml:"-"`
+	engineType  string   `yaml:"-"`
 }
 
 // NewJober 创建新的Jober实例

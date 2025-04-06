@@ -1,6 +1,8 @@
 CREATE TABLE `job_cron`
 (
     `id`           int           NOT NULL AUTO_INCREMENT COMMENT '主键编码',
+    `name`      varchar(100)  NOT NULL DEFAULT '' COMMENT '任务名称',
+    `owner`     varchar(50)   NOT NULL DEFAULT '' COMMENT '任务归属人',
     `app_name`  varchar(50)            DEFAULT NULL COMMENT '应用名称',
     `tenant`    varchar(50)            DEFAULT NULL COMMENT '租户信息',
     `locker`    varchar(30)   NOT NULL DEFAULT '' COMMENT '锁拥有者',
@@ -101,12 +103,8 @@ CREATE TABLE `job_definition` (
   `name` varchar(80) NOT NULL DEFAULT '' COMMENT '名称',
   `app_name`  varchar(50)            DEFAULT NULL COMMENT '应用名称',
   `tenant` varchar(50) NOT NULL DEFAULT '' COMMENT '租户信息',
-  `sort` int unsigned NOT NULL COMMENT '排序',
-  `pipelines` varchar(2000) NOT NULL DEFAULT '' COMMENT '流水线json格式',
-  `retry` int unsigned NOT NULL COMMENT '设定重试次数',
-  `input` varchar(500) NOT NULL DEFAULT '' COMMENT '预设参数',
-  `env` varchar(500) NOT NULL DEFAULT '' COMMENT '附加的env参数',
-  `condition` varchar(100) NOT NULL DEFAULT '' COMMENT '处理特殊逻辑',
+  `version`     int       NOT NULL DEFAULT '0' COMMENT '版本',
+  `yaml_conf` text   NULL COMMENT 'yaml配置',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `idx_name` (`name`)
 ) DEFAULT CHARSET=utf8mb4  COMMENT='通用任务定义表';
