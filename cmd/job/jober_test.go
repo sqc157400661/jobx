@@ -22,7 +22,7 @@ func TestDemoAutoSuspendJob(t *testing.T) {
 		"action": "Suspend",
 	})
 	// test multiple pipeline add
-	err = NewJober("AutoSuspend", "sqc", "CDWInternal", input).
+	err = NewJober("AutoSuspend", "sqc", options.JobDesc("CDWInternal"), input).
 		AddPipeline("QueryIdlesMetric", "QueryIdlesMetric").
 		AddPipeline("CheckIdle", "CheckIdle").
 		AddPipeline("PreVwCheckTasker", "PreVwCheck").
@@ -41,7 +41,7 @@ func TestDemoAutoResumeJob(t *testing.T) {
 		"action": "Resume",
 	})
 	// test multiple pipeline add
-	err = NewJober("AutoResume", "sqc", "CDWInternal", input).
+	err = NewJober("AutoResume", "sqc", options.JobDesc("CDWInternal"), input).
 		AddPipeline("QueryCnchPendingTask", "QueryPendingTask").
 		AddPipeline("PreVwCheckTasker", "PreVwCheck").
 		AddPipeline("LockVwStatus", "LockVwStatusInDB").
@@ -56,7 +56,7 @@ func TestDemoAutoResumeJob(t *testing.T) {
 func TestJober(t *testing.T) {
 	var err error
 	// test multiple pipeline add
-	err = NewJober("jober1", "sqc", "").
+	err = NewJober("jober1", "sqc").
 		AddPipeline("task_1", "demo").
 		AddPipeline("task_2", "delay").
 		AddPipeline("task_3", "demo2").
@@ -70,7 +70,7 @@ func TestJober(t *testing.T) {
 		"testKeybool":   true,
 		"testKeystring": "hahah",
 	}
-	err = NewJober("jober2", "sqc", "",
+	err = NewJober("jober2", "sqc",
 		options.JobInput(map[string]interface{}{
 			"all_config": "yes",
 		}),
@@ -78,7 +78,7 @@ func TestJober(t *testing.T) {
 			"env": "test",
 		}),
 	).
-		AddJob(NewJober("jober2_1", "sqc", "", options.JobInput(inputMap))).
+		AddJob(NewJober("jober2_1", "sqc", options.JobInput(inputMap))).
 		AddPipeline("task_1", "demo", options.JobEnv(map[string]interface{}{
 			"env": "sim",
 		})).
@@ -90,15 +90,15 @@ func TestJober(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test multiple job add
-	job := NewJober("jober3", "sqc", "")
+	job := NewJober("jober3", "sqc")
 	err = job.AddJob(
-		NewJober("jober3_1", "sqc", "").
+		NewJober("jober3_1", "sqc").
 			AddPipeline("task_1", "demo").
 			AddPipeline("task_2", "delay").
 			AddPipeline("task_3", "demo2")).Exec()
 	assert.NoError(t, err)
 	err = job.AddJob(
-		NewJober("jober3_2", "sqc", "").
+		NewJober("jober3_2", "sqc").
 			AddPipeline("task_1", "demo").
 			AddPipeline("task_2", "demo").
 			AddPipeline("task_3", "demo")).Exec()
@@ -108,7 +108,6 @@ func TestJober(t *testing.T) {
 	err = NewJober(
 		"jober1",
 		"sqc",
-		"",
 		options.BizId("12345"),
 	).
 		AddPipeline("task_1", "demo").Exec()

@@ -2,15 +2,15 @@ package log
 
 import (
 	"fmt"
-	"github.com/sqc157400661/jobx/internal"
+	"github.com/sqc157400661/jobx/internal/log"
 	"strings"
 	"time"
 )
 
-var Logger *internal.BufferLogger
+var Logger *log.BufferLogger
 
 func init() {
-	Logger = internal.NewBufferLogger()
+	Logger = log.NewBufferLogger()
 }
 
 func Info(rootId interface{}, message string) {

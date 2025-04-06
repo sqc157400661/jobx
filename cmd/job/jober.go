@@ -3,57 +3,69 @@ package job
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/internal"
 	"github.com/sqc157400661/jobx/internal/helper"
+	"github.com/sqc157400661/jobx/internal/job"
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
+	"gopkg.in/yaml.v3"
+	"time"
 )
 
-// job拥有者
+// Jober 构建Job定义的链式调用结构体
 type Jober struct {
-	Job         *model.Job
-	Level       int
-	Pipeline    *internal.Pipeline
-	root        *Jober
-	child       *Jober
-	Tokens      []string // 令牌
-	err         error
-	sync        bool
-	syncTimeOut int
+	job.JobDef
+	level       int      `yaml:"-"`
+	tokens      []string `yaml:"-"`
+	err         error    `yaml:"-"`
+	sync        bool     `yaml:"-"`
+	syncTimeOut int      `yaml:"-"`
+	JobId       int      `yaml:"-"`
 }
 
-func NewJober(name, owner, tenant string, opts ...options.JobOptionFunc) *Jober {
+// NewJober 创建新的Jober实例
+func NewJober(name, owner string, opts ...options.JobOptionFunc) *Jober {
 	o := options.DefaultJobOptions
 	for _, opt := range opts {
 		opt(&o)
 	}
-	job := &Jober{
-		Job: &model.Job{
-			Name:   name,
-			Desc:   o.Desc,
-			Pause:  o.Pause,
-			Input:  o.Input,
-			Env:    o.Env,
-			BizID:  o.BizId,
-			Locker: o.PreLockUid,
-			Owner:  owner,
-			Tenant: tenant,
-			State: model.State{
-				Phase:  config.PhaseReady,
-				Status: config.StatusPending,
-			},
+	return &Jober{
+		JobDef: job.JobDef{
+			Name: name,
+			Desc: o.Desc,
+			Env:  o.Env,
+			//Pause: o.Pause,
+			Locker:  o.PreLockUid,
+			BizID:   o.BizId,
+			Owner:   owner,
+			AppName: o.AppName,
+			Tenant:  o.Tenant,
 		},
+		level:       1,
 		sync:        o.Sync,
 		syncTimeOut: o.SyncTimeOut,
-		Tokens:      o.Tokens,
-		Level:       0,
+		tokens:      o.Tokens,
 	}
+}
+
+func (j *Jober) AddJob(job *Jober) *Jober {
+	if j.Pipelines != nil {
+		job.err = errors.New(errors.ParamError, "jober can not add,because higher level jober already has pipeline")
+	}
+	if job.err != nil {
+		return job
+	}
+	job.level = j.level + 1
+	job.BizID = ""   // 子任务无效参数
+	job.tokens = nil // 子任务无效参数
+	job.Input = helper.UnsafeMergeMap(job.Input, j.Input)
+	job.Env = helper.UnsafeMergeMap(job.Env, j.Env)
+	if job.level > config.MaxJobLevel {
+		job.err = errors.New(errors.ParamError, "job level exceeds max limit")
+	}
+	j.Jobs = append(j.Jobs, job.JobDef)
 	return job
 }
 
@@ -62,7 +74,7 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 	for _, opt := range opts {
 		opt(&o)
 	}
-	if j.Err() != nil {
+	if j.err != nil {
 		return j
 	}
 	// 判断是否在全局Provider中
@@ -70,55 +82,32 @@ func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptio
 		j.err = errors.ErrNoProvider
 		return j
 	}
-	if j.Pipeline == nil {
-		j.Pipeline = &internal.Pipeline{}
-	}
-	t := &model.PipelineTask{
+	t := job.Pipeline{
 		Name:   name,
 		Action: action,
 		Desc:   providers.GetDesc(action, o.Desc),
-		Pause:  o.Pause,
-		Input:  helper.UnsafeMergeMap(o.Input, j.Job.Input),
-		Env:    helper.UnsafeMergeMap(o.Env, j.Job.Env),
-		Retry:  o.Retry,
-		State: model.State{
-			Phase:  config.PhaseReady,
-			Status: config.StatusPending,
-		},
+		//Pause:  o.Pause,
+		Input:    helper.UnsafeMergeMap(o.Input, j.Input),
+		Env:      helper.UnsafeMergeMap(o.Env, j.Env),
+		RetryNum: o.Retry,
 	}
-	j.Pipeline.Steps = append(j.Pipeline.Steps, t)
-	j.Job.Runnable = config.RunnableYes
+	j.Pipelines = append(j.Pipelines, t)
 	return j
 }
 
-func (j *Jober) AddJob(job *Jober) *Jober {
-	if j.Pipeline != nil {
-		job.err = errors.New(errors.ParamError, "jober can not add,because higher level jober already has pipeline")
-	}
-	if job.Err() != nil {
-		return job
-	}
-	if j.root == nil {
-		job.root = j
-	} else {
-		job.root = j.root
-	}
-	job.Job.BizID = "" // 子任务无效参数
-	job.Tokens = nil   // 子任务无效参数
-	job.Level = j.Level + 1
-	job.Job.Input = helper.UnsafeMergeMap(job.Job.Input, j.Job.Input)
-	job.Job.Env = helper.UnsafeMergeMap(job.Job.Env, j.Job.Env)
-	if job.Level > config.MaxJobLevel {
-		job.err = errors.New(errors.ParamError, "job level exceeds max limit")
-	}
-	j.child = job
-	return job
-}
-
 func (j *Jober) Exec() (err error) {
+	if j == nil {
+		return
+	}
+	if j.err != nil {
+		return j.err
+	}
 	sess := model.DB().NewSession()
 	//jobStorage := storage.NewJobStorage(sess)
 	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
 	defer func() {
 		if err != nil {
 			_ = sess.Rollback()
@@ -126,89 +115,68 @@ func (j *Jober) Exec() (err error) {
 			_ = sess.Commit()
 		}
 	}()
-	if j.Err() != nil {
-		return j.Err()
-	}
-	var root *Jober
-	root = j.root
-	if j.root == nil {
-		root = j
-	}
-	if root == nil || root.Job == nil {
-		return errors.New(errors.ParamError, "root not available")
-	}
-	if root.Job.BizID != "" {
+	if j.BizID != "" {
 		var has bool
 		var existJob model.Job
-		existJob, has, err = model.GetJobByBizId(root.Job.BizID)
+		existJob, has, err = model.GetJobByBizId(j.BizID)
 		if err != nil {
 			return err
 		}
 		if has {
-			j.Job = &existJob
-			return errors.BIZConflict(fmt.Sprintf("biz:%s rootID:%d", root.Job.BizID, existJob.RootID))
+			j.JobId = existJob.ID
+			return errors.BIZConflict(fmt.Sprintf("biz:%s rootID:%d", j.BizID, existJob.RootID))
 		}
 	}
-	if len(root.Tokens) > 0 {
+	if len(j.tokens) > 0 {
 		var rootId int
-		rootId, err = model.CheckTokens(root.Tokens)
+		rootId, err = model.CheckTokens(j.tokens)
 		if err != nil {
-			j.Job.ID = rootId
+			j.JobId = rootId
 			return
 		}
 	}
-	_ = sess.Begin()
-	var pre *Jober
-	for jober := root; jober != nil; jober = jober.child {
-		// save job
-		if pre != nil {
-			jober.Job.ParentID = pre.Job.ID
-			jober.Job.Path = strings.TrimLeft(pre.Job.Path+fmt.Sprintf(",%d", pre.Job.ID), ",")
-		}
-		pre = jober
-		jober.Job.RootID = root.Job.ID
-		jober.Job.Level = jober.Level
-		jober.Job.Phase = config.PhaseInit
-		if jober.Job.ID == 0 {
-			err = jober.Job.Save()
-			if err != nil {
-				return
-			}
-		}
-		// save Tasks
-		if jober.Pipeline == nil {
-			continue
-		}
-		for _, task := range jober.Pipeline.Steps {
-			task.JobID = jober.Job.ID
-			if task.Env == nil {
-				task.Env = map[string]interface{}{"rootID": root.Job.ID}
-			} else {
-				task.Env["rootID"] = root.Job.ID
-			}
-			err = task.Save()
-			if err != nil {
-				return
-			}
-		}
-		jober.Job.Phase = config.PhaseReady
-		err = jober.Job.Update()
-		if err != nil {
-			return
-		}
+	var rootId int
+	if rootId, err = job.SaveJobsFromDef(j.JobDef); err != nil {
+		return
 	}
-	err = model.CreateTokens(root.Job.ID, root.Tokens)
+	err = model.CreateTokens(rootId, j.tokens)
 	if err != nil {
 		return
 	}
-	if root.sync {
-		return WaitJob(root.Job.ID, root.syncTimeOut)
+	if j.sync {
+		return WaitJob(rootId, j.syncTimeOut)
 	}
 	return nil
 }
 
-func (j *Jober) Err() error {
-	return j.err
+// ToYAML 生成YAML字符串
+func (j *Jober) ToYAML() (string, error) {
+	def := &job.JobDefinition{
+		JobDef: j.JobDef,
+	}
+	yamlData, err := yaml.Marshal(def)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal job definition: %w", err)
+	}
+	return string(yamlData), nil
+}
+
+// AddInput 添加入参
+func (j *Jober) AddInput(key string, value interface{}) *Jober {
+	if j.Input == nil {
+		j.Input = make(map[string]interface{})
+	}
+	j.Input[key] = value
+	return j
+}
+
+// AddEnv 添加环境变量
+func (j *Jober) AddEnv(key string, value interface{}) *Jober {
+	if j.Env == nil {
+		j.Env = make(map[string]interface{})
+	}
+	j.Env[key] = value
+	return j
 }
 
 func WaitJob(jobId int, timeout int) error {

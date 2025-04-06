@@ -1,4 +1,4 @@
-package internal
+package log
 
 import (
 	"github.com/sqc157400661/jobx/internal/helper"
