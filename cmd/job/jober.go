@@ -116,7 +116,7 @@ func (j *Jober) AddJob(job *Jober) *Jober {
 }
 
 func (j *Jober) Exec() (err error) {
-	sess := model.JFDb.NewSession()
+	sess := model.DB().NewSession()
 	//jobStorage := storage.NewJobStorage(sess)
 	defer sess.Close()
 	defer func() {
@@ -244,7 +244,7 @@ func waitJob(ctx context.Context, jobId int, done chan struct{}) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			_, _ = model.JFDb.ID(jobId).Get(&job)
+			_, _ = model.DB().ID(jobId).Get(&job)
 			if job.State.IsSuccess() {
 				close(done)
 				return

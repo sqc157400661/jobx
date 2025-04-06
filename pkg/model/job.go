@@ -21,8 +21,8 @@ type Job struct {
 	State    `xorm:"extends"`
 	Input    map[string]interface{} `gorm:"column:input" json:"input" xorm:"input"`           // 入参
 	Env      map[string]interface{} `gorm:"column:env" json:"env" xorm:"env"`                 // 配置信息
-	CreateAt int                    `gorm:"column:create_at" json:"create_at" xorm:"created"` // 创建时间
-	UpdateAt int                    `gorm:"column:update_at" json:"update_at" xorm:"updated"` // 更新时间
+	CreateAt int64                  `gorm:"column:create_at" json:"create_at" xorm:"created"` // 创建时间
+	UpdateAt int64                  `gorm:"column:update_at" json:"update_at" xorm:"updated"` // 更新时间
 }
 
 func (j *Job) TableName() string {
@@ -30,17 +30,17 @@ func (j *Job) TableName() string {
 }
 
 func (j *Job) Save() (err error) {
-	_, err = JFDb.InsertOne(j)
+	_, err = DB().InsertOne(j)
 	return
 }
 
 func (t *Job) Update() (err error) {
-	_, err = JFDb.Update(t, &Job{ID: t.ID})
+	_, err = DB().Update(t, &Job{ID: t.ID})
 	return
 }
 
 func (j *Job) MarkRunning() (err error) {
 	j.State.Phase = config.PhaseRunning
-	_, err = JFDb.Update(j, &Job{ID: j.ID, State: State{Phase: config.PhaseReady}})
+	_, err = DB().Update(j, &Job{ID: j.ID, State: State{Phase: config.PhaseReady}})
 	return
 }

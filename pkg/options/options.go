@@ -9,7 +9,10 @@ type Options struct {
 	Desc string
 	//Timeout      int // 单位秒，执行超时时间
 	// PoolLen control the number of tasks executed at the same time
-	PoolLen int
+	PoolLen     int
+	Tenant      string
+	AppName     string
+	DisableCron bool
 }
 
 var DefaultOption = Options{
@@ -17,7 +20,7 @@ var DefaultOption = Options{
 	PoolLen: 2,
 }
 
-// Name with JobFlow desc.
+// Desc with JobFlow desc.
 func Desc(desc string) OptionFunc {
 	return func(o *Options) { o.Desc = desc }
 }
@@ -30,4 +33,19 @@ func Desc(desc string) OptionFunc {
 // PoolLen with JobFlow PoolLen.
 func PoolLen(l int) OptionFunc {
 	return func(o *Options) { o.PoolLen = l }
+}
+
+// AppName with JobFlow AppName.
+func AppName(l string) OptionFunc {
+	return func(o *Options) { o.AppName = l }
+}
+
+// Tenant with JobFlow Tenant.
+func Tenant(l string) OptionFunc {
+	return func(o *Options) { o.Tenant = l }
+}
+
+// DisableCron disable JobFlow CronTrigger.
+func DisableCron() OptionFunc {
+	return func(o *Options) { o.DisableCron = true }
 }

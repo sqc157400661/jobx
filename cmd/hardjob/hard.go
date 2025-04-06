@@ -30,7 +30,7 @@ import (
 func NewHardJob(name, owner, tenant string, input interface{}, opts ...options.JobOptionFunc) (jobId int, err error) {
 	inputMap, _ := helper.Struct2Map(input)
 	var jobDefs []*model.JobDefinition
-	err = model.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
+	err = model.DB().Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
 	if err != nil {
 		return
 	}
@@ -114,7 +114,7 @@ func getPipelineInfo(pipe string) (name, action string) {
 
 func GetHardJob(name, tenant string) (hardJobDefinition types.HardJobDefinition, err error) {
 	var jobDefs []*model.JobDefinition
-	err = model.JFDb.Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
+	err = model.DB().Where("name=? and tenant=?", name, tenant).OrderBy("sort asc").Find(&jobDefs)
 	if err != nil {
 		return
 	}

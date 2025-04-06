@@ -1,8 +1,9 @@
 package model
 
 import (
-	"github.com/sqc157400661/jobx/config"
 	"k8s.io/klog/v2"
+
+	"github.com/sqc157400661/jobx/config"
 )
 
 // PipelineTask [...]
@@ -20,8 +21,8 @@ type PipelineTask struct {
 	Output   map[string]interface{} `gorm:"column:output" json:"output" xorm:"output"`        // 出参
 	Env      map[string]interface{} `gorm:"column:env" json:"env" xorm:"env"`                 // 配置信息
 	Context  map[string]interface{} `gorm:"column:context" json:"context" xorm:"context"`     // 上下文参数
-	CreateAt int                    `gorm:"column:create_at" json:"create_at" xorm:"created"` // 创建时间
-	UpdateAt int                    `gorm:"column:update_at" json:"update_at" xorm:"updated"` // 更新时间
+	CreateAt int64                  `gorm:"column:create_at" json:"create_at" xorm:"created"` // 创建时间
+	UpdateAt int64                  `gorm:"column:update_at" json:"update_at" xorm:"updated"` // 更新时间
 }
 
 func (t *PipelineTask) TableName() string {
@@ -30,18 +31,18 @@ func (t *PipelineTask) TableName() string {
 
 //func (t *PipelineTask) MarkRunning() (err error) {
 //	t.State.Phase = config.PhaseRunning
-//	_, err = JFDb.Update(t, &PipelineTask{ID: t.ID, State: State{Phase: config.PhaseReady}})
+//	_, err = DB().Update(t, &PipelineTask{ID: t.ID, State: State{Phase: config.PhaseReady}})
 //	return
 //}
 
 func (t *PipelineTask) Update() (err error) {
-	_, err = JFDb.Update(t, &PipelineTask{ID: t.ID})
+	_, err = DB().Update(t, &PipelineTask{ID: t.ID})
 	return
 }
 
 func (t *PipelineTask) Next() (next *PipelineTask, err error) {
 	next = new(PipelineTask)
-	_, err = JFDb.Where("id>? and job_id=?", t.ID, t.JobID).Asc("id").Get(next)
+	_, err = DB().Where("id>? and job_id=?", t.ID, t.JobID).Asc("id").Get(next)
 	return
 }
 
@@ -51,7 +52,7 @@ func (t *PipelineTask) Succeed() (err error) {
 		Phase:  config.PhaseTerminated,
 		Status: config.StatusSuccess,
 	}
-	_, err = JFDb.Update(t, &PipelineTask{ID: t.ID})
+	_, err = DB().Update(t, &PipelineTask{ID: t.ID})
 	return
 }
 
@@ -74,18 +75,18 @@ func (t *PipelineTask) Fail(err error) {
 		Status: config.StatusFail,
 		Reason: reason,
 	}
-	_, e := JFDb.Update(t, &PipelineTask{ID: t.ID})
+	_, e := DB().Update(t, &PipelineTask{ID: t.ID})
 	if e != nil {
 		klog.Errorf("PipelineTask Fail err：%s  id:%d ", e.Error(), t.ID)
 	}
 }
 
 func (t *PipelineTask) RefreshState() (state State) {
-	_, _ = JFDb.ID(t.ID).Get(t)
+	_, _ = DB().ID(t.ID).Get(t)
 	return t.State
 }
 
 func (t *PipelineTask) Save() (err error) {
-	_, err = JFDb.InsertOne(t)
+	_, err = DB().InsertOne(t)
 	return
 }

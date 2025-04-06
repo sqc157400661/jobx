@@ -2,8 +2,9 @@ package options
 
 import (
 	"fmt"
-	"github.com/sqc157400661/jobx/config"
 	"time"
+
+	"github.com/sqc157400661/jobx/config"
 )
 
 const (
@@ -15,6 +16,8 @@ type JobOptionFunc func(o *jobOptions)
 
 // options is an application options.
 type jobOptions struct {
+	AppName     string
+	Tenant      string
 	Desc        string
 	Env         map[string]interface{}
 	Pause       int8
@@ -57,6 +60,16 @@ func JobEnv(env map[string]interface{}) JobOptionFunc {
 			o.Env = env
 		}
 	}
+}
+
+// JobAppName with JobFlow AppName.
+func JobAppName(l string) JobOptionFunc {
+	return func(o *jobOptions) { o.AppName = l }
+}
+
+// JobTenant with JobFlow Tenant.
+func JobTenant(l string) JobOptionFunc {
+	return func(o *jobOptions) { o.Tenant = l }
 }
 
 // 可选参数，指定业务唯一编码，也是任务的幂等编码

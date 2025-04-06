@@ -2,12 +2,14 @@ package cron
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/robfig/cron/v3"
-	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/pkg/model"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"sync"
+
+	"github.com/sqc157400661/jobx/config"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 type JobEntry interface {
@@ -63,7 +65,7 @@ func (r *Runner) Start() (err error) {
 				if c.IsDeleted() {
 					r.remove(c.EntryID)
 					// 从数据库删除该定时任务数据
-					_, err = model.JFDb.ID(c.ID).Delete(c)
+					_, err = model.DB().ID(c.ID).Delete(c)
 					if err != nil {
 						klog.Errorf("delete cronjob err %s,uid:%s cronId:%d", err.Error(), r.uid, c.ID)
 						continue

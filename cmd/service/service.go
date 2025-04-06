@@ -39,6 +39,8 @@ type JobFlow struct {
 	worker internal.WorkerPool
 	// Tracks job progress and status
 	tracker internal.Tracker
+	// cronTrigger job cron trigger
+	cronTrigger collector.CronTrigger
 
 	// Concurrency control
 	stopChan  chan struct{}
@@ -63,11 +65,14 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 	for _, opt := range opts {
 		opt(&jf.opts)
 	}
-	model.JFDb = db
 	// Initialize components with proper isolation
-	jf.collector = collector.NewDefaultCollector(db, uid, collectorJobLen)
+	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.Tenant, jf.opts.AppName, collectorJobLen)
 	jf.worker = internal.NewDefaultWorkerPool(jf.opts.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker, jf.localQueue)
+	if !jf.opts.DisableCron {
+		jf.cronTrigger = collector.NewDefaultCronTrigger()
+	}
+	model.SetDB(db)
 	return
 }
 
@@ -106,32 +111,27 @@ func (jf *JobFlow) Start() {
 	jf.startOnce.Do(func() {
 		go func() {
 			jf.tracker.Start()
-			go jf.processJobEnqueue()
+			if jf.cronTrigger != nil {
+				jf.cronTrigger.Start()
+			}
+			go jf.processJob()
 			klog.Infof("jobFlow:%s ,uid:%s,starting", jf.opts.Desc, jf.uid)
 		}()
 	})
 }
 
 // processJobEnqueue manages job stealing and queue population
-func (jf *JobFlow) processJobEnqueue() {
+func (jf *JobFlow) processJob() {
 	var ticker *time.Ticker
 	ticker = time.NewTicker(processJobEnQueueInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-jf.tracker.Waiting():
-			err := jf.stealJobs()
-			if err != nil {
-				klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
-			}
+			jf.stealJobs()
 		case <-ticker.C:
-			if jf.localQueue.PendingCount() > localQueueLen/2 {
-				continue
-			}
-			err := jf.stealJobs()
-			if err != nil {
-				klog.Errorf("jobFlow:%s ,uid:%s,collector job Err:%s", jf.opts.Desc, jf.uid, err.Error())
-			}
+			jf.stealJobs()
+			jf.stealCronJobs()
 		case <-jf.stopChan:
 			err := jf.collector.ReleaseJobs()
 			if err != nil {
@@ -148,12 +148,33 @@ func (jf *JobFlow) RunSyncJob(Job *model.Job) (err error) {
 }
 
 // stealJobs retrieves jobs from collector and enqueues them
-func (jf *JobFlow) stealJobs() error {
+func (jf *JobFlow) stealJobs() {
+	if jf.localQueue.PendingCount() > localQueueLen/2 {
+		return
+	}
 	jobs, err := jf.collector.StealJobs()
 	if err != nil {
-		return err
+		klog.Errorf("jobFlow:%s ,uid:%s,StealJobs job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+		return
 	}
-	return jf.EnqueueJobs(jobs...)
+	err = jf.EnqueueJobs(jobs...)
+	if err != nil {
+		klog.Errorf("jobFlow:%s ,uid:%s,EnqueueJobs job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+		return
+	}
+}
+
+// stealCronJobs retrieves cron jobs from collector
+func (jf *JobFlow) stealCronJobs() {
+	if jf.cronTrigger == nil {
+		return
+	}
+	cronJobs, err := jf.collector.StealCronJobs()
+	if err != nil {
+		klog.Errorf("jobFlow:%s ,uid:%s,StealCronJobs job Err:%s", jf.opts.Desc, jf.uid, err.Error())
+		return
+	}
+	jf.cronTrigger.Load(cronJobs)
 }
 
 // EnqueueJobs adds jobs to the local queue with overflow handling
@@ -183,6 +204,9 @@ func (jf *JobFlow) EnqueueJobs(jobs ...*model.Job) error {
 // Stop gracefully shuts down the JobFlow
 func (jf *JobFlow) Stop() {
 	jf.stopOnce.Do(func() {
+		if jf.cronTrigger != nil {
+			jf.cronTrigger.Stop()
+		}
 		jf.tracker.Stop()
 		close(jf.stopChan)
 		<-jf.stopped

@@ -26,6 +26,7 @@ const (
 	CronStatusRebooting = "rebooting" // 重启中的
 	CronStatusUpdating  = "updating"  // 更新中的
 	CronStatusInvalid   = "invalid"   // 无效的
+	CronStatusDeleting  = "deleting"  // 删除的中
 	CronStatusDeleted   = "deleted"   // 已删除的
 	CronExecFuncType    = "func"      // func任务类型
 	CronExecJobType     = "job.run"   // job任务类型

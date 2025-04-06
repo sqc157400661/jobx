@@ -2,17 +2,33 @@ package model
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/go-xorm/xorm"
+
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/pkg/errors"
 )
 
-// todo 这里实例化多次jobflow会有值覆盖现象，但是目前单个项目对应单库，暂时可以不用考虑
+var setOnce sync.Once
+
+// JFDb When the tenant appName is the same,
+// only one database is allowed, so a global variable is set here
 var JFDb *xorm.Engine
+
+func DB() *xorm.Engine {
+	return JFDb
+}
+
+func SetDB(db *xorm.Engine) {
+	setOnce.Do(func() {
+		JFDb = db
+	})
+}
 
 // GetChildRunableJobsByRootId 根据rootId获取可执行的子任务
 func GetChildRunableJobsByRootId(rootId int, status ...string) (jobs []Job, err error) {
-	model := JFDb.Where("root_id = ? and runnable =1", rootId)
+	model := DB().Where("root_id = ? and runnable =1", rootId)
 	if len(status) > 0 {
 		model.In("phase", status)
 	}
@@ -21,18 +37,18 @@ func GetChildRunableJobsByRootId(rootId int, status ...string) (jobs []Job, err 
 }
 
 func GetPipelineTasksByJobId(id int) (tasks []*PipelineTask, err error) {
-	err = JFDb.Where("job_id=?", id).Asc("id").Find(&tasks)
+	err = DB().Where("job_id=?", id).Asc("id").Find(&tasks)
 	return
 }
 
 func GetJobById(id int) (job Job, has bool, err error) {
-	has, err = JFDb.ID(id).Get(&job)
+	has, err = DB().ID(id).Get(&job)
 	return
 }
 
 func CheckTokens(tokens []string) (rootId int, err error) {
 	var jobTokens []*JobToken
-	err = JFDb.In("token", tokens).Find(&jobTokens)
+	err = DB().In("token", tokens).Find(&jobTokens)
 	if err != nil {
 		return
 	}
@@ -68,46 +84,46 @@ func CreateTokens(rootId int, tokens []string) (err error) {
 			RootID: rootId,
 		}
 	}
-	_, err = JFDb.Insert(&jobTokens)
+	_, err = DB().Insert(&jobTokens)
 	return
 }
 
 func ReleaseTokens(rootId int) (err error) {
 	var jobToken = new(JobToken)
-	_, err = JFDb.Where("root_id=?", rootId).Delete(jobToken)
+	_, err = DB().Where("root_id=?", rootId).Delete(jobToken)
 	return
 }
 
 func GetRootJobByJobId(jobId int) (resJob Job, has bool, err error) {
 	var job Job
-	has, err = JFDb.ID(jobId).Get(&job)
+	has, err = DB().ID(jobId).Get(&job)
 	if job.RootID == 0 {
 		resJob = job
 		return
 	}
-	has, err = JFDb.ID(job.RootID).Get(&resJob)
+	has, err = DB().ID(job.RootID).Get(&resJob)
 	return
 }
 
 func GetJobByBizId(bizId string) (job Job, has bool, err error) {
-	has, err = JFDb.Where("biz_id=?", bizId).Get(&job)
+	has, err = DB().Where("biz_id=?", bizId).Get(&job)
 	return
 }
 
 func GetChildJobsById(id int) (childJobs []*Job, err error) {
-	err = JFDb.Where("parent_id=?", id).Find(&childJobs)
+	err = DB().Where("parent_id=?", id).Find(&childJobs)
 	return
 }
 
 func UpdateJobStateByID(id int, state *State) (err error) {
 	job := new(Job)
 	job.State = *state
-	_, err = JFDb.ID(id).Update(job)
+	_, err = DB().ID(id).Update(job)
 	return
 }
 
 func UpdateJobsStateByRootID(rootid int, state *State) (err error) {
-	_, err = JFDb.Table(new(Job)).Where("root_id=?", rootid).Update(map[string]interface{}{
+	_, err = DB().Table(new(Job)).Where("root_id=?", rootid).Update(map[string]interface{}{
 		"phase":  state.Phase,
 		"status": state.Status,
 	})
@@ -116,7 +132,7 @@ func UpdateJobsStateByRootID(rootid int, state *State) (err error) {
 
 // GetValidCron 获取有效的cron任务
 func GetValidCron() (jobCrons []*JobCron, err error) {
-	model := JFDb.Where("status=？", config.CronStatusValid)
+	model := DB().Where("status=？", config.CronStatusValid)
 	err = model.Asc("id").Find(&jobCrons)
 	return
 }
@@ -124,7 +140,7 @@ func GetValidCron() (jobCrons []*JobCron, err error) {
 // CollectCron 获取相关cron任务
 func CollectCron(uid string) (jobCrons []*JobCron, err error) {
 	// 尝试lock
-	session := JFDb.NewSession()
+	session := DB().NewSession()
 	defer session.Close()
 	_, err = session.Exec("update job_cron set locker=? where locker='' and status =? order by id asc limit ?", uid, config.CronStatusValid, 2)
 	if err != nil {
@@ -134,7 +150,7 @@ func CollectCron(uid string) (jobCrons []*JobCron, err error) {
 	if err != nil {
 		return
 	}
-	model := JFDb.Where("locker=?", uid)
+	model := DB().Where("locker=?", uid)
 	err = model.Asc("id").Find(&jobCrons)
 	return
 }
@@ -142,24 +158,24 @@ func CollectCron(uid string) (jobCrons []*JobCron, err error) {
 // GetCronByExecContent 根据content获取cron任务
 func GetCronByExecContent(content string) (jobCron *JobCron, err error) {
 	jobCron = &JobCron{}
-	_, err = JFDb.Where("exec_content=?", content).Get(jobCron)
+	_, err = DB().Where("exec_content=?", content).Get(jobCron)
 	return
 }
 
 // GetCronByID 根据id获取cron任务
 func GetCronByID(id int) (jobCron JobCron, err error) {
-	_, err = JFDb.ID(id).Get(&jobCron)
+	_, err = DB().ID(id).Get(&jobCron)
 	return
 }
 
 // GetLogByEventID 根据EventID获取log信息
 func GetLogByEventID(eventID int) (jobLogs JobLogs, err error) {
-	_, err = JFDb.Where("event_id=?", eventID).Get(&jobLogs)
+	_, err = DB().Where("event_id=?", eventID).Get(&jobLogs)
 	return
 }
 
 // BatchAddLogs 批量添加日志
 func BatchAddLogs(logs []*JobLogs) (err error) {
-	_, err = JFDb.Insert(&logs)
+	_, err = DB().Insert(&logs)
 	return
 }

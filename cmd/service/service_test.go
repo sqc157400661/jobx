@@ -1,13 +1,15 @@
 package service
 
 import (
-	"github.com/sqc157400661/jobx/pkg/providers"
-	"github.com/sqc157400661/jobx/test"
-	"github.com/stretchr/testify/require"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/sqc157400661/jobx/pkg/providers"
+	"github.com/sqc157400661/jobx/test"
 )
 
 func TestMutiJobFlow(t *testing.T) {
@@ -26,7 +28,7 @@ func TestMutiJobFlow(t *testing.T) {
 			jobFlow.Start()
 			time.Sleep(30 * time.Second)
 			t.Log(" jobFlow Quit")
-			jobFlow.Quit()
+			jobFlow.Stop()
 		}(i)
 	}
 	wg.Wait()

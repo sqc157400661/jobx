@@ -2,6 +2,7 @@ package biz
 
 import (
 	"fmt"
+
 	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/helper"
@@ -271,7 +272,7 @@ func ForceDiscard(req types.DiscardReq) (err error) {
 //}
 
 func getTaskByID(id int) (task model.PipelineTask, err error) {
-	_, err = model.JFDb.ID(id).Get(&task)
+	_, err = model.DB().ID(id).Get(&task)
 	if err != nil {
 		return
 	}

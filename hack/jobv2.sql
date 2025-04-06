@@ -9,6 +9,7 @@ CREATE TABLE `job_cron`
     `exec_type`    varchar(20)   NOT NULL DEFAULT '' COMMENT '执行任务类型，如job、func、shell、http',
     `exec_content` varchar(1000) NOT NULL DEFAULT '' COMMENT '执行任务内容',
     `status`       varchar(50)   NOT NULL DEFAULT '' COMMENT '状态',
+    `last_health_time`    datetime  COMMENT '健康检查的时间',
     `create_at`    int           NOT NULL DEFAULT '0' COMMENT '创建时间',
     `update_at`    int           NOT NULL DEFAULT '0' COMMENT '更新时间',
     PRIMARY KEY (`id`),
