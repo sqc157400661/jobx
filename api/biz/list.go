@@ -17,9 +17,8 @@ func JobList(req types.JobListReq) (jobs []model.Job, total int64, err error) {
 	}
 	layout := "2006-01-02 15:04:05"
 	var t time.Time
-	model := model.JFDb
 	var sess *xorm.Session
-	sess = model.Where("parent_id=?", req.ParentId)
+	sess = model.DB().Where("parent_id=?", req.ParentId)
 	if req.ID > 0 {
 		sess = sess.ID(req.ID)
 	}

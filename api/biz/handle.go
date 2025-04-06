@@ -11,7 +11,6 @@ import (
 
 // Retry Only the failed task can be retried
 func Retry(req types.RetryReq) (err error) {
-	model := model.JFDb
 	var task model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
@@ -47,18 +46,17 @@ func Retry(req types.RetryReq) (err error) {
 	if req.Input != nil && len(req.Input) > 0 {
 		task.Input = req.Input
 	}
-	_, err = model.Cols("phase", "status", "input").Update(&task, &model.PipelineTask{ID: task.ID})
+	_, err = model.DB().Cols("phase", "status", "input").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
 	sql := fmt.Sprintf("update %s set phase = ?,status = ?,locker='' where id in (?,?)", rootJob.TableName())
-	_, err = model.Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
+	_, err = model.DB().Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
 	return
 }
 
 // Pause Only tasks can be pause
 func Pause(req types.PauseReq) (err error) {
-	model := model.JFDb
 	var task model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
@@ -73,7 +71,7 @@ func Pause(req types.PauseReq) (err error) {
 		return
 	}
 	task.Status = config.StatusPause
-	_, err = model.Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
+	_, err = model.DB().Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -97,21 +95,20 @@ func PauseJob(req types.PauseReq) (err error) {
 	if err != nil {
 		return
 	}
-	model := model.JFDb
 	for _, task := range tasks {
 		if !task.CanPause() {
 			continue
 		}
 		if task.IsReady() {
 			task.Status = config.StatusPause
-			_, err = model.Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
+			_, err = model.DB().Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
 			if err != nil {
 				return
 			}
 		}
 	}
 	sql := fmt.Sprintf("update %s set status = ? where id =?", job.TableName())
-	_, err = model.Exec(sql, config.StatusPause, req.JobID)
+	_, err = model.DB().Exec(sql, config.StatusPause, req.JobID)
 	return
 }
 
@@ -132,19 +129,18 @@ func RestartJob(req types.RestartReq) (err error) {
 	if err != nil {
 		return
 	}
-	model := model.JFDb
 	for _, task := range tasks {
 		if task.IsPausing() {
 			task.Status = config.StatusPending
 			task.Phase = config.PhaseReady
-			_, err = model.Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
+			_, err = model.DB().Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
 			if err != nil {
 				return
 			}
 		}
 	}
 	sql := fmt.Sprintf("update %s set phase = ?,status = ?,locker='' where id=?", job.TableName())
-	_, err = model.Exec(sql, config.PhaseReady, config.StatusPending, req.JobID)
+	_, err = model.DB().Exec(sql, config.PhaseReady, config.StatusPending, req.JobID)
 	if err != nil {
 		return
 	}
@@ -153,7 +149,6 @@ func RestartJob(req types.RestartReq) (err error) {
 
 // Skip skip one task
 func Skip(req types.SkipReq) (err error) {
-	model := model.JFDb
 	var task model.PipelineTask
 	var next *model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
@@ -183,7 +178,7 @@ func Skip(req types.SkipReq) (err error) {
 		return
 	}
 	task.Status = config.StatusSkip
-	_, err = model.Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
+	_, err = model.DB().Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -193,7 +188,7 @@ func Skip(req types.SkipReq) (err error) {
 	}
 	if next.ID > 0 {
 		next.Context = helper.UnsafeMergeMap(next.Context, task.Context)
-		_, err = model.Cols("context").Update(next, &model.PipelineTask{ID: next.ID})
+		_, err = model.DB().Cols("context").Update(next, &model.PipelineTask{ID: next.ID})
 		if err != nil {
 			return
 		}
@@ -204,14 +199,13 @@ func Skip(req types.SkipReq) (err error) {
 			Status: config.StatusPending,
 		}
 		sql := fmt.Sprintf("update %s set phase = ?,status = ?,locker='' where id in (?,?)", rootJob.TableName())
-		_, err = model.Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
+		_, err = model.DB().Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
 	}
 	return
 }
 
 // Discard Discard a job and clean up the bizID， Only the failed task can be discarded
 func Discard(req types.DiscardReq) (err error) {
-	model := model.JFDb
 	var rootJob model.Job
 	var has bool
 	rootJob, has, err = model.GetRootJobByJobId(req.JobID)
@@ -231,13 +225,12 @@ func Discard(req types.DiscardReq) (err error) {
 		return
 	}
 	sql := fmt.Sprintf("update %s set status = ?,biz_id='' where id =?", rootJob.TableName())
-	_, err = model.Exec(sql, config.StatusDiscarded, rootJob.ID)
+	_, err = model.DB().Exec(sql, config.StatusDiscarded, rootJob.ID)
 	return
 }
 
 // ForceDiscard Discard a job and clean up the bizID
 func ForceDiscard(req types.DiscardReq) (err error) {
-	model := model.JFDb
 	var rootJob model.Job
 	var has bool
 	rootJob, has, err = model.GetRootJobByJobId(req.JobID)
@@ -253,9 +246,9 @@ func ForceDiscard(req types.DiscardReq) (err error) {
 		return
 	}
 	sql := fmt.Sprintf("update %s set status = ?,biz_id='' where id =?", rootJob.TableName())
-	_, err = model.Exec(sql, config.StatusDiscarded, rootJob.ID)
+	_, err = model.DB().Exec(sql, config.StatusDiscarded, rootJob.ID)
 	if req.TaskID > 0 {
-		_, err = model.ID(req.TaskID).Cols("phase", "status").Update(map[string]string{
+		_, err = model.DB().ID(req.TaskID).Cols("phase", "status").Update(map[string]string{
 			"phase":  config.PhaseTerminated,
 			"status": config.StatusDiscarded,
 		})

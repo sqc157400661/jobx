@@ -13,11 +13,11 @@ func LogList(req types.LogListReq) (logs []model.JobLogs, total int64, err error
 	if req.Size == 0 {
 		req.Size = 20
 	}
-	model := model.JFDb
+	engine := model.JFDb
 	var sess *xorm.Session
-	sess = model.NewSession()
+	sess = engine.NewSession()
 	if req.RootID > 0 {
-		sess = model.Where("event_id=?", req.RootID)
+		sess = engine.Where("event_id=?", req.RootID)
 	}
 	log := new(model.JobLogs)
 	total, err = sess.Clone().Count(log)
