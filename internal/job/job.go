@@ -39,7 +39,7 @@ type Pipeline struct {
 	Env       map[string]interface{} `yaml:"env,omitempty"`
 }
 
-func ProcessYAML(yamlContent []byte) (int, error) {
+func YAMLToJob(yamlContent []byte) (int, error) {
 	var jobDef JobDefinition
 
 	// Unmarshal YAML
@@ -59,12 +59,12 @@ func ProcessYAML(yamlContent []byte) (int, error) {
 	rootJob.Path = fmt.Sprintf("%d", rootJob.ID)
 
 	// Update root job with hierarchy info
-	if err := rootJob.Save(); err != nil {
+	if err = rootJob.Save(); err != nil {
 		return 0, fmt.Errorf("failed to update root job: %w", err)
 	}
 
 	// Process child jobs recursively
-	if err := SaveJobsFromDef02(&jobDef.JobDef, rootJob); err != nil {
+	if _, err = SaveJobsFromDef(jobDef.JobDef); err != nil {
 		return 0, fmt.Errorf("failed to process child jobs: %w", err)
 	}
 
