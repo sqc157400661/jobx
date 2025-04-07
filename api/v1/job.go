@@ -4,11 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sqc157400661/jobx/api/base"
 	"github.com/sqc157400661/jobx/api/biz"
-	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/api/types/request"
 	"github.com/sqc157400661/jobx/pkg/model"
-	"strconv"
-	"strings"
+	"github.com/sqc157400661/jobx/pkg/search"
 )
 
 type Job struct {
@@ -25,37 +23,22 @@ func (e Job) Get(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	if req.ID == -1 {
-		e.OK(map[string]string{
-			"status":  "success",
-			"message": "success",
-			"tips":    "任务id为-1，默认返回成功，标志任务相关任务已经在执行且已经成功，又重新发起相同任务",
-		}, "查询成功")
-		return
-	}
-	if req.ID == 0 {
-		req.ID = req.JobID
-		if req.JobID == 0 {
-			e.Error(400, nil, "任务参数不合法")
-			return
-		}
-	}
-	var jobRes types.JobResult
-	jobRes, err = biz.Get(req.ID)
+	var jobRes model.Job
+	session := model.DB().NewSession()
+	defer session.Close()
+	searchFunc := search.MakeCondition(req)
+	_, err = searchFunc(session).Get(&jobRes)
 	if err != nil {
 		e.Error(500, err, "查询失败")
 		return
 	}
-	e.OK(map[string]string{
-		"status":  jobRes.Job.Status,
-		"message": jobRes.Job.Reason,
-		"tips":    "",
-	}, "查询成功")
+	e.OK(jobRes, "查询成功")
 }
 
 func (e Job) GetPage(c *gin.Context) {
 	req := request.GetJobListReq{}
 	err := e.MakeContext(c).
+		Bind(&req).
 		Errors
 	if err != nil {
 		e.Logger.Error(err)
@@ -64,30 +47,16 @@ func (e Job) GetPage(c *gin.Context) {
 	}
 	var count int64
 	var list []model.Job
-	var ids []int64
-	if req.ID != "" {
-		idArr := strings.Split(req.ID, ",")
-		for _, v := range idArr {
-			id, errC := strconv.Atoi(strings.Trim(v, " "))
-			if errC != nil {
-				continue
-			}
-			ids = append(ids, int64(id))
-		}
+	session := model.DB().NewSession()
+	defer session.Close()
+	searchFunc := search.MakeCondition(req, &req.Pagination)
+	count, err = searchFunc(session).Clone().Count(new(model.Job))
+	if err != nil {
+		e.Logger.Errorf("db error: %s", err)
+		e.Error(500, err, "查询count失败")
+		return
 	}
-	list, count, err = biz.JobList(types.JobListReq{
-		Name:         req.Name,
-		Page:         req.PageIndex,
-		Size:         req.PageSize,
-		ParentId:     req.ParentId,
-		IDs:          ids,
-		Owner:        req.Owner,
-		Status:       req.Status,
-		InputContain: req.InputContain,
-		Tenant:       req.Tenant,
-		MinCreateAt:  req.MinCreateAt,
-		MaxCreateAt:  req.MaxCreateAt,
-	})
+	err = searchFunc(session).Find(&list)
 	if err != nil {
 		e.Error(500, err, "查询失败")
 		return
@@ -96,7 +65,7 @@ func (e Job) GetPage(c *gin.Context) {
 }
 
 func (e Job) Retry(c *gin.Context) {
-	req := types.RetryReq{}
+	req := request.RetryReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -114,7 +83,7 @@ func (e Job) Retry(c *gin.Context) {
 }
 
 func (e Job) Skip(c *gin.Context) {
-	req := types.SkipReq{}
+	req := request.SkipReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -132,7 +101,7 @@ func (e Job) Skip(c *gin.Context) {
 }
 
 func (e Job) Discard(c *gin.Context) {
-	req := types.DiscardReq{}
+	req := request.DiscardReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -150,7 +119,7 @@ func (e Job) Discard(c *gin.Context) {
 }
 
 func (e Job) Pause(c *gin.Context) {
-	req := types.PauseReq{}
+	req := request.PauseReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -168,7 +137,7 @@ func (e Job) Pause(c *gin.Context) {
 }
 
 func (e Job) Restart(c *gin.Context) {
-	req := types.RestartReq{}
+	req := request.RestartReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -186,7 +155,7 @@ func (e Job) Restart(c *gin.Context) {
 }
 
 func (e Job) ForceDiscard(c *gin.Context) {
-	req := types.DiscardReq{}
+	req := request.DiscardReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -204,7 +173,7 @@ func (e Job) ForceDiscard(c *gin.Context) {
 }
 
 func (e Job) TaskList(c *gin.Context) {
-	req := types.TaskListReq{}
+	req := request.TaskListReq{}
 	err := e.MakeContext(c).
 		Bind(&req).
 		Errors
@@ -213,7 +182,14 @@ func (e Job) TaskList(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	var tasks []model.PipelineTask
-	tasks, err = biz.TaskList(req)
-	e.OK(tasks, "查询成功")
+	var list []model.PipelineTask
+	session := model.DB().NewSession()
+	defer session.Close()
+	searchFunc := search.MakeCondition(req)
+	err = searchFunc(session).Find(&list)
+	if err != nil {
+		e.Error(500, err, "查询失败")
+		return
+	}
+	e.OK(list, "查询成功")
 }

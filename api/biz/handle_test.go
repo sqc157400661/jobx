@@ -2,6 +2,7 @@ package biz
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/api/types/request"
 	"strings"
 	"testing"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
@@ -19,7 +19,7 @@ func TestRetry(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
 	model.JFDb = engine
-	var req = types.RetryReq{
+	var req = request.RetryReq{
 		TaskID: 935,
 		//IDs:   []int64{514, 510},
 	}
@@ -31,7 +31,7 @@ func TestPause(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
 	model.JFDb = engine
-	var req = types.PauseReq{
+	var req = request.PauseReq{
 		TaskID: 935,
 		//IDs:   []int64{514, 510},
 	}
@@ -43,7 +43,7 @@ func TestPauseJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
 	model.JFDb = engine
-	var req = types.PauseReq{
+	var req = request.PauseReq{
 		JobID: 132,
 		//IDs:   []int64{514, 510},
 	}
@@ -55,7 +55,7 @@ func TestRestartJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
 	model.JFDb = engine
-	var req = types.RestartReq{
+	var req = request.RestartReq{
 		JobID: 132,
 		//IDs:   []int64{514, 510},
 	}
@@ -67,7 +67,7 @@ func TestAbandon(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
 	model.JFDb = engine
-	var req = types.DiscardReq{
+	var req = request.DiscardReq{
 		JobID: 11111193,
 		//IDs:   []int64{514, 510},
 	}

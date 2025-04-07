@@ -3,7 +3,6 @@ package v1
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sqc157400661/jobx/api/base"
-	"github.com/sqc157400661/jobx/api/biz"
 	"github.com/sqc157400661/jobx/api/types/request"
 	"github.com/sqc157400661/jobx/pkg/model"
 )
@@ -23,7 +22,7 @@ func (e JobLog) Get(c *gin.Context) {
 		return
 	}
 	var jobLog model.JobLogs
-	jobLog, err = biz.GetLogByEventID(req.EventID)
+	jobLog, err = model.GetLogByEventID(req.EventID)
 	if err != nil {
 		e.Error(500, err, "查询失败")
 		return

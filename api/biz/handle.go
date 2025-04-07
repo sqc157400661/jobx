@@ -2,15 +2,15 @@ package biz
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/api/types/request"
 
-	"github.com/sqc157400661/jobx/api/types"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 // Retry Only the failed task can be retried
-func Retry(req types.RetryReq) (err error) {
+func Retry(req request.RetryReq) (err error) {
 	var task model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
@@ -56,7 +56,7 @@ func Retry(req types.RetryReq) (err error) {
 }
 
 // Pause Only tasks can be pause
-func Pause(req types.PauseReq) (err error) {
+func Pause(req request.PauseReq) (err error) {
 	var task model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
 	if err != nil {
@@ -79,7 +79,7 @@ func Pause(req types.PauseReq) (err error) {
 }
 
 // PauseJob todo check root?
-func PauseJob(req types.PauseReq) (err error) {
+func PauseJob(req request.PauseReq) (err error) {
 	var job model.Job
 	var hasJob bool
 	job, hasJob, err = model.GetJobById(req.JobID)
@@ -113,7 +113,7 @@ func PauseJob(req types.PauseReq) (err error) {
 }
 
 // RestartJob todo check root?
-func RestartJob(req types.RestartReq) (err error) {
+func RestartJob(req request.RestartReq) (err error) {
 	var job model.Job
 	var hasJob bool
 	job, hasJob, err = model.GetJobById(req.JobID)
@@ -148,7 +148,7 @@ func RestartJob(req types.RestartReq) (err error) {
 }
 
 // Skip skip one task
-func Skip(req types.SkipReq) (err error) {
+func Skip(req request.SkipReq) (err error) {
 	var task model.PipelineTask
 	var next *model.PipelineTask
 	task, err = getTaskByID(req.TaskID)
@@ -205,7 +205,7 @@ func Skip(req types.SkipReq) (err error) {
 }
 
 // Discard Discard a job and clean up the bizID， Only the failed task can be discarded
-func Discard(req types.DiscardReq) (err error) {
+func Discard(req request.DiscardReq) (err error) {
 	var rootJob model.Job
 	var has bool
 	rootJob, has, err = model.GetRootJobByJobId(req.JobID)
@@ -230,7 +230,7 @@ func Discard(req types.DiscardReq) (err error) {
 }
 
 // ForceDiscard Discard a job and clean up the bizID
-func ForceDiscard(req types.DiscardReq) (err error) {
+func ForceDiscard(req request.DiscardReq) (err error) {
 	var rootJob model.Job
 	var has bool
 	rootJob, has, err = model.GetRootJobByJobId(req.JobID)
