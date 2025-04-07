@@ -1,4 +1,4 @@
-package cron
+package biz
 
 import (
 	"github.com/sqc157400661/jobx/config"
