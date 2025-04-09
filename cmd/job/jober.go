@@ -110,6 +110,21 @@ func (c *Cronjob) ExecJob(job *Jober) (err error) {
 	return cronJob.Save()
 }
 
+func YAMLToJob(yamlContent []byte) (int, error) {
+	var jobDef job.JobDefinition
+	var err error
+	// Unmarshal YAML
+	if err = yaml.Unmarshal(yamlContent, &jobDef); err != nil {
+		return 0, fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+	var rootId int
+	// Process child jobs recursively
+	if rootId, err = job.SaveJobsFromDef(jobDef.JobDef); err != nil {
+		return 0, fmt.Errorf("failed to process child jobs: %w", err)
+	}
+	return rootId, nil
+}
+
 // Jober 构建Job定义的链式调用结构体
 type Jober struct {
 	job.JobDef

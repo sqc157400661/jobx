@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/pkg/model"
-	"gopkg.in/yaml.v3"
 	"time"
 )
 
@@ -37,38 +36,6 @@ type Pipeline struct {
 	Condition []string               `yaml:"condition,omitempty"`
 	Input     map[string]interface{} `yaml:"input,omitempty"`
 	Env       map[string]interface{} `yaml:"env,omitempty"`
-}
-
-func YAMLToJob(yamlContent []byte) (int, error) {
-	var jobDef JobDefinition
-
-	// Unmarshal YAML
-	if err := yaml.Unmarshal(yamlContent, &jobDef); err != nil {
-		return 0, fmt.Errorf("failed to unmarshal YAML: %w", err)
-	}
-	// Process the root job todo 这里提出来做成公共的
-	rootJob, err := createJobFromDef(&jobDef.JobDef, &model.Job{})
-	if err != nil {
-		return 0, fmt.Errorf("failed to create root job: %w", err)
-	}
-
-	// Set root job fields
-	rootJob.RootID = rootJob.ID
-	rootJob.ParentID = 0
-	rootJob.Level = 1
-	rootJob.Path = fmt.Sprintf("%d", rootJob.ID)
-
-	// Update root job with hierarchy info
-	if err = rootJob.Save(); err != nil {
-		return 0, fmt.Errorf("failed to update root job: %w", err)
-	}
-
-	// Process child jobs recursively
-	if _, err = SaveJobsFromDef(jobDef.JobDef); err != nil {
-		return 0, fmt.Errorf("failed to process child jobs: %w", err)
-	}
-
-	return rootJob.ID, nil
 }
 
 func SaveJobsFromDef(parentDef JobDef) (rootId int, err error) {

@@ -160,3 +160,78 @@ func TestCronJob(t *testing.T) {
 	fmt.Println(err)
 	fmt.Println(cron.ExecJob(job))
 }
+
+func TestYAMLToJob(t *testing.T) {
+	a := `jobDef:
+    name: testcron3_AutoResume
+    desc: CDWInternal
+    owner: sqc
+    appName: iam
+    tenant: beijing
+    bizId: ""
+    pipelines:
+        - name: QueryCnchPendingTask
+          desc: 查询cnch的pengding-task表
+          action: QueryPendingTask
+          retryNum: 3
+          input:
+            action: Suspend
+          env:
+            retry_gap_second: 10
+        - name: PreVwCheckTasker
+          desc: 校验Vw的状态
+          action: PreVwCheck
+          retryNum: 3
+          input:
+            action: Suspend
+          env:
+            retry_gap_second: 10
+        - name: LockVwStatus
+          desc: lock vw status in db
+          action: LockVwStatusInDB
+          retryNum: 3
+          input:
+            action: Suspend
+          env:
+            retry_gap_second: 10
+        - name: UpdateK8sResource
+          desc: 更新对应的K8s VW资源信息
+          action: UpdateK8sResource
+          retryNum: 3
+          input:
+            action: Suspend
+          env:
+            retry_gap_second: 10
+        - name: wait
+          desc: 用于控制任务之间，需要等待的时间时长，返回结果里的wait_time，代表需要等待的时间
+          action: delay
+          retryNum: 3
+          input:
+            action: Suspend
+            time: 5s
+          env:
+            retry_gap_second: 10
+        - name: CheckK8sResource
+          desc: watch k8s资源是否被更新完成
+          action: CheckK8sResource
+          retryNum: 3
+          input:
+            action: Suspend
+          env:
+            retry_gap_second: 10
+        - name: UpdateVwStatusInDB
+          desc: 更新vw在数据库中的状态信息
+          action: MarkVwStatusInDB
+          retryNum: 3
+          input:
+            action: Suspend
+          env:
+            retry_gap_second: 10
+    input:
+        action: Suspend
+    env:
+        retry_gap_second: 10
+
+`
+	fmt.Println(YAMLToJob([]byte(a)))
+}
