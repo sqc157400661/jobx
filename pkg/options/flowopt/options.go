@@ -1,9 +1,9 @@
 package flowopt
 
-// Option is an application option.
+// OptionFunc is an application option.
 type OptionFunc func(o *Options)
 
-// options is an application options.
+// Options is an application options.
 type Options struct {
 	// desc for JobFlow
 	Desc string
