@@ -9,7 +9,7 @@ import (
 	"github.com/sqc157400661/jobx/internal/job"
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/model"
-	flowopt "github.com/sqc157400661/jobx/pkg/options/cronopt"
+	"github.com/sqc157400661/jobx/pkg/options/cronopt"
 	"github.com/sqc157400661/jobx/pkg/options/jobopt"
 	"github.com/sqc157400661/jobx/pkg/providers"
 	"gopkg.in/yaml.v3"
@@ -17,16 +17,14 @@ import (
 )
 
 type Cronjob struct {
-	name           string
-	spec           string
-	owner          string
-	tenant         string
-	appName        string
-	currencyPolicy string
+	name  string
+	spec  string
+	owner string
+	opt   cronopt.CronOptions
 }
 
-func NewCronjob(spec, name, owner string, opts ...flowopt.CronOptionFunc) (*Cronjob, error) {
-	o := flowopt.DefaultOption
+func NewCronjob(spec, name, owner string, opts ...cronopt.CronOptionFunc) (*Cronjob, error) {
+	o := cronopt.DefaultOption
 	for _, opt := range opts {
 		opt(&o)
 	}
@@ -40,12 +38,10 @@ func NewCronjob(spec, name, owner string, opts ...flowopt.CronOptionFunc) (*Cron
 		return nil, err
 	}
 	return &Cronjob{
-		spec:           spec,
-		name:           name,
-		owner:          owner,
-		tenant:         o.Tenant,
-		appName:        o.AppName,
-		currencyPolicy: o.CurrencyPolicy,
+		spec:  spec,
+		name:  name,
+		owner: owner,
+		opt:   o,
 	}, nil
 }
 
@@ -67,10 +63,10 @@ func (c *Cronjob) ExecJob(job *Jober) (err error) {
 		}
 	}()
 	job.Name = fmt.Sprintf("%s_%s", c.name, job.Name)
-	job.AppName = c.appName
-	job.Tenant = c.tenant
+	job.AppName = c.opt.AppName
+	job.Tenant = c.opt.Tenant
 	job.Owner = c.owner
-	existCronJob, err := model.IsCronJobExist(c.tenant, c.appName, c.name)
+	existCronJob, err := model.IsCronJobExist(c.opt.Tenant, c.opt.AppName, c.name)
 	if err != nil {
 		return
 	}
@@ -91,8 +87,8 @@ func (c *Cronjob) ExecJob(job *Jober) (err error) {
 		}
 		jobDef = &model.JobDefinition{
 			Name:     job.Name,
-			AppName:  c.appName,
-			Tenant:   c.tenant,
+			AppName:  c.opt.AppName,
+			Tenant:   c.opt.Tenant,
 			YamlConf: yamlConf,
 		}
 		if err = jobDef.Save(); err != nil {
@@ -106,9 +102,9 @@ func (c *Cronjob) ExecJob(job *Jober) (err error) {
 		Spec:           c.spec,
 		ExecType:       config.JobExecType,
 		ExecContent:    job.Name,
-		Tenant:         c.tenant,
-		AppName:        c.appName,
-		CurrencyPolicy: c.currencyPolicy,
+		Tenant:         c.opt.Tenant,
+		AppName:        c.opt.AppName,
+		CurrencyPolicy: c.opt.CurrencyPolicy,
 	}
 	return cronJob.Save()
 }

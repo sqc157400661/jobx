@@ -1,4 +1,4 @@
-package flowopt
+package cronopt
 
 import "github.com/sqc157400661/jobx/config"
 
