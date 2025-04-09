@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sqc157400661/jobx/cmd/service"
 	"github.com/sqc157400661/jobx/hack/demo"
+	"github.com/sqc157400661/jobx/pkg/options/jobopt"
 	"github.com/sqc157400661/jobx/pkg/providers"
 	"testing"
 	"time"
@@ -12,23 +13,22 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/sqc157400661/jobx/pkg/model"
-	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/test"
 )
 
 func TestDemoAutoSuspendJob(t *testing.T) {
 	var err error
-	input := options.JobInput(map[string]interface{}{
+	input := jobopt.JobInput(map[string]interface{}{
 		"action": "Suspend",
 	})
 	// test multiple pipeline add
-	err = NewJober("AutoSuspend", "sqc", options.JobDesc("CDWInternal"), input).
+	err = NewJob("AutoSuspend", "sqc", jobopt.JobDesc("CDWInternal"), input).
 		AddPipeline("QueryIdlesMetric", "QueryIdlesMetric").
 		AddPipeline("CheckIdle", "CheckIdle").
 		AddPipeline("PreVwCheckTasker", "PreVwCheck").
 		AddPipeline("LockVwStatus", "LockVwStatusInDB").
 		AddPipeline("UpdateK8sResource", "UpdateK8sResource").
-		AddPipeline("wait", "delay", options.JobInput(map[string]interface{}{"time": 5 * time.Second})).
+		AddPipeline("wait", "delay", jobopt.JobInput(map[string]interface{}{"time": 5 * time.Second})).
 		AddPipeline("CheckK8sResource", "CheckK8sResource").
 		AddPipeline("UpdateVwStatusInDB", "MarkVwStatusInDB").
 		Exec()
@@ -37,16 +37,16 @@ func TestDemoAutoSuspendJob(t *testing.T) {
 
 func TestDemoAutoResumeJob(t *testing.T) {
 	var err error
-	input := options.JobInput(map[string]interface{}{
+	input := jobopt.JobInput(map[string]interface{}{
 		"action": "Resume",
 	})
 	// test multiple pipeline add
-	err = NewJober("AutoResume", "sqc", options.JobDesc("CDWInternal"), input).
+	err = NewJob("AutoResume", "sqc", jobopt.JobDesc("CDWInternal"), input).
 		AddPipeline("QueryCnchPendingTask", "QueryPendingTask").
 		AddPipeline("PreVwCheckTasker", "PreVwCheck").
 		AddPipeline("LockVwStatus", "LockVwStatusInDB").
 		AddPipeline("UpdateK8sResource", "UpdateK8sResource").
-		AddPipeline("wait", "delay", options.JobInput(map[string]interface{}{"time": 5 * time.Second})).
+		AddPipeline("wait", "delay", jobopt.JobInput(map[string]interface{}{"time": 5 * time.Second})).
 		AddPipeline("CheckK8sResource", "CheckK8sResource").
 		AddPipeline("UpdateVwStatusInDB", "MarkVwStatusInDB").
 		Exec()
@@ -56,7 +56,7 @@ func TestDemoAutoResumeJob(t *testing.T) {
 func TestJober(t *testing.T) {
 	var err error
 	// test multiple pipeline add
-	err = NewJober("jober1", "sqc").
+	err = NewJob("jober1", "sqc").
 		AddPipeline("task_1", "demo").
 		AddPipeline("task_2", "delay").
 		AddPipeline("task_3", "demo2").
@@ -70,19 +70,19 @@ func TestJober(t *testing.T) {
 		"testKeybool":   true,
 		"testKeystring": "hahah",
 	}
-	err = NewJober("jober2", "sqc",
-		options.JobInput(map[string]interface{}{
+	err = NewJob("jober2", "sqc",
+		jobopt.JobInput(map[string]interface{}{
 			"all_config": "yes",
 		}),
-		options.JobEnv(map[string]interface{}{
+		jobopt.JobEnv(map[string]interface{}{
 			"env": "test",
 		}),
 	).
-		AddJob(NewJober("jober2_1", "sqc", options.JobInput(inputMap))).
-		AddPipeline("task_1", "demo", options.JobEnv(map[string]interface{}{
+		AddJob(NewJob("jober2_1", "sqc", jobopt.JobInput(inputMap))).
+		AddPipeline("task_1", "demo", jobopt.JobEnv(map[string]interface{}{
 			"env": "sim",
 		})).
-		AddPipeline("task_2", "delay", options.JobInput(map[string]interface{}{
+		AddPipeline("task_2", "delay", jobopt.JobInput(map[string]interface{}{
 			"pipeline": 233,
 		})).
 		AddPipeline("task_3", "demo").
@@ -90,25 +90,25 @@ func TestJober(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test multiple job add
-	job := NewJober("jober3", "sqc")
+	job := NewJob("jober3", "sqc")
 	err = job.AddJob(
-		NewJober("jober3_1", "sqc").
+		NewJob("jober3_1", "sqc").
 			AddPipeline("task_1", "demo").
 			AddPipeline("task_2", "delay").
 			AddPipeline("task_3", "demo2")).Exec()
 	assert.NoError(t, err)
 	err = job.AddJob(
-		NewJober("jober3_2", "sqc").
+		NewJob("jober3_2", "sqc").
 			AddPipeline("task_1", "demo").
 			AddPipeline("task_2", "demo").
 			AddPipeline("task_3", "demo")).Exec()
 	assert.NoError(t, err)
 
 	// test job with biz_id
-	err = NewJober(
+	err = NewJob(
 		"jober1",
 		"sqc",
-		options.BizId("12345"),
+		jobopt.BizId("12345"),
 	).
 		AddPipeline("task_1", "demo").Exec()
 	assert.NoError(t, err)
@@ -142,4 +142,21 @@ func init() {
 		&demo.UpdateK8sResourceCheckLoop{},
 		&demo.PreVwCheckTasker{},
 	)
+}
+
+func TestCronJob(t *testing.T) {
+	input := jobopt.JobInput(map[string]interface{}{
+		"action": "Suspend",
+	})
+	job := NewJob("AutoResume", "sqc", jobopt.JobDesc("CDWInternal"), input).
+		AddPipeline("QueryCnchPendingTask", "QueryPendingTask").
+		AddPipeline("PreVwCheckTasker", "PreVwCheck").
+		AddPipeline("LockVwStatus", "LockVwStatusInDB").
+		AddPipeline("UpdateK8sResource", "UpdateK8sResource").
+		AddPipeline("wait", "delay", jobopt.JobInput(map[string]interface{}{"time": 5 * time.Second})).
+		AddPipeline("CheckK8sResource", "CheckK8sResource").
+		AddPipeline("UpdateVwStatusInDB", "MarkVwStatusInDB")
+	cron, err := NewCronjob("* * * * * *", "testcron2", "sqc")
+	fmt.Println(err)
+	fmt.Println(cron.ExecJob(job))
 }

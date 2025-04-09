@@ -38,3 +38,9 @@ const (
 const (
 	JobExecType = "job"
 )
+
+const (
+	AllowCronCurrencyPolicy   = "allow"
+	ForbidCronCurrencyPolicy  = "forbid"
+	ReplaceCronCurrencyPolicy = "replace"
+)

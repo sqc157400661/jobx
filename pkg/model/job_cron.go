@@ -11,6 +11,7 @@ type JobCron struct {
 	ID             int64     `gorm:"primaryKey;column:id" json:"id" xorm:"id pk autoincr"`
 	Name           string    `gorm:"column:name" json:"name" xorm:"name"`                                     // 任务名称
 	Owner          string    `gorm:"column:owner" json:"owner" xorm:"owner"`                                  // 任务归属人
+	CurrencyPolicy string    `gorm:"column:currency_policy" json:"currency_policy" xorm:"currency_policy"`    // 并发策略
 	EntryID        int       `gorm:"column:entry_id" json:"entry_id" xorm:"entry_id"`                         // 定时任务id
 	Spec           string    `gorm:"column:spec" json:"spec" xorm:"spec"`                                     // 定时表达式
 	ExecType       string    `gorm:"column:exec_type" json:"exec_type" xorm:"exec_type"`                      // 执行任务类型，如job、func、shell

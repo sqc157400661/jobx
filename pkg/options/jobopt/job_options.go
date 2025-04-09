@@ -1,4 +1,4 @@
-package options
+package jobopt
 
 import (
 	"fmt"
@@ -62,13 +62,13 @@ func JobEnv(env map[string]interface{}) JobOptionFunc {
 	}
 }
 
-// JobAppName with JobFlow AppName.
-func JobAppName(l string) JobOptionFunc {
+// AppName with JobFlow AppName.
+func AppName(l string) JobOptionFunc {
 	return func(o *jobOptions) { o.AppName = l }
 }
 
-// JobTenant with JobFlow Tenant.
-func JobTenant(l string) JobOptionFunc {
+// Tenant with JobFlow Tenant.
+func Tenant(l string) JobOptionFunc {
 	return func(o *jobOptions) { o.Tenant = l }
 }
 

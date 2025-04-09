@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/pkg/options/flowopt"
 	"sync"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/sqc157400661/jobx/internal/queue"
 	joberrors "github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/model"
-	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
@@ -30,7 +30,7 @@ type JobFlow struct {
 	// Unique identifier for the JobFlow instance
 	uid string
 	// Configuration options
-	opts options.Options
+	opts flowopt.Options
 	// Job collector from database
 	collector collector.Collector
 	// Local buffer for stolen jobs
@@ -50,7 +50,7 @@ type JobFlow struct {
 }
 
 // NewJobFlow creates a new JobFlow instance with specified UID and database connection
-func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *JobFlow, err error) {
+func NewJobFlow(uid string, db *xorm.Engine, opts ...flowopt.OptionFunc) (jf *JobFlow, err error) {
 	if uid == "" || db == nil {
 		err = joberrors.ErrInvalidParameter
 		return
@@ -61,7 +61,7 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...options.OptionFunc) (jf *Jo
 		stopChan:   make(chan struct{}),
 		stopped:    make(chan struct{}),
 	}
-	jf.opts = options.DefaultOption
+	jf.opts = flowopt.DefaultOption
 	for _, opt := range opts {
 		opt(&jf.opts)
 	}

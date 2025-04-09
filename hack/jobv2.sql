@@ -5,6 +5,7 @@ CREATE TABLE `job_cron`
     `owner`     varchar(50)   NOT NULL DEFAULT '' COMMENT '任务归属人',
     `app_name`  varchar(50)            DEFAULT NULL COMMENT '应用名称',
     `tenant`    varchar(50)            DEFAULT NULL COMMENT '租户信息',
+    `currency_policy`      varchar(10)  NOT NULL DEFAULT '' COMMENT '并发策略',
     `locker`    varchar(30)   NOT NULL DEFAULT '' COMMENT '锁拥有者',
     `entry_id`     int           NOT NULL DEFAULT '0' COMMENT '定时任务id',
     `spec`         varchar(30)   NOT NULL DEFAULT '' COMMENT '定时表达式',

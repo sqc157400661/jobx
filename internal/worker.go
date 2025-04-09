@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/pkg/options/jobopt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/pkg/model"
-	"github.com/sqc157400661/jobx/pkg/options"
 	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
@@ -151,7 +151,7 @@ func (w *DefaultWorkerPool) process(pipeline *Pipeline) {
 			return
 		}
 		// Execute with retry
-		if err = w.runWithRetry(curTask, taskProvider.Run, options.GetRetryGapSecond(curTask.Env)); err != nil {
+		if err = w.runWithRetry(curTask, taskProvider.Run, jobopt.GetRetryGapSecond(curTask.Env)); err != nil {
 			err = errors.Wrapf(err, "taskProvider %s run err", task.Action)
 			return
 		}

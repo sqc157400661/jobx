@@ -9,7 +9,8 @@ import (
 	"github.com/sqc157400661/jobx/internal/job"
 	"github.com/sqc157400661/jobx/pkg/errors"
 	"github.com/sqc157400661/jobx/pkg/model"
-	"github.com/sqc157400661/jobx/pkg/options"
+	flowopt "github.com/sqc157400661/jobx/pkg/options/cronopt"
+	"github.com/sqc157400661/jobx/pkg/options/jobopt"
 	"github.com/sqc157400661/jobx/pkg/providers"
 	"gopkg.in/yaml.v3"
 	"time"
@@ -23,8 +24,16 @@ type Cronjob struct {
 	appName string
 }
 
-func NewCronjob(spec, name, owner, tenant, appName string) (*Cronjob, error) {
-	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+func NewCronjob(spec, name, owner string, opts ...flowopt.CronOptionFunc) (*Cronjob, error) {
+	o := flowopt.DefaultOption
+	for _, opt := range opts {
+		opt(&o)
+	}
+	cronParseOption := cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow
+	if o.SecondEnable {
+		cronParseOption = cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow
+	}
+	parser := cron.NewParser(cronParseOption)
 	_, err := parser.Parse(spec)
 	if err != nil {
 		return nil, err
@@ -33,8 +42,8 @@ func NewCronjob(spec, name, owner, tenant, appName string) (*Cronjob, error) {
 		spec:    spec,
 		name:    name,
 		owner:   owner,
-		tenant:  tenant,
-		appName: appName,
+		tenant:  o.Tenant,
+		appName: o.AppName,
 	}, nil
 }
 
@@ -113,17 +122,18 @@ type Jober struct {
 	engineType  string   `yaml:"-"`
 }
 
-// NewJober 创建新的Jober实例
-func NewJober(name, owner string, opts ...options.JobOptionFunc) *Jober {
-	o := options.DefaultJobOptions
+// NewJob 创建新的Job实例
+func NewJob(name, owner string, opts ...jobopt.JobOptionFunc) *Jober {
+	o := jobopt.DefaultJobOptions
 	for _, opt := range opts {
 		opt(&o)
 	}
 	return &Jober{
 		JobDef: job.JobDef{
-			Name: name,
-			Desc: o.Desc,
-			Env:  o.Env,
+			Name:  name,
+			Desc:  o.Desc,
+			Env:   o.Env,
+			Input: o.Input,
 			//Pause: o.Pause,
 			Locker:  o.PreLockUid,
 			BizID:   o.BizId,
@@ -157,8 +167,8 @@ func (j *Jober) AddJob(job *Jober) *Jober {
 	return job
 }
 
-func (j *Jober) AddPipeline(name string, action string, opts ...options.JobOptionFunc) *Jober {
-	o := options.DefaultJobOptions
+func (j *Jober) AddPipeline(name string, action string, opts ...jobopt.JobOptionFunc) *Jober {
+	o := jobopt.DefaultJobOptions
 	for _, opt := range opts {
 		opt(&o)
 	}

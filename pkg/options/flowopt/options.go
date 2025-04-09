@@ -1,4 +1,4 @@
-package options
+package flowopt
 
 // Option is an application option.
 type OptionFunc func(o *Options)

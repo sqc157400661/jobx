@@ -44,7 +44,7 @@ jobFlow.Register(taskProvider1,taskProvider2,taskProvider3)
 // 添加一个job，并添加一个任务节点
 // job:  必选参数1：job名称， 必选参数2：job拥有者
 // task: 必选参数1：名称，    必选参数2：执行主体名称
-err := NewJober("jober1", "sqc").
+err := NewJob("jober1", "sqc").
 		AddPipeline("task_1", "demo").
 		Exec()
 
@@ -68,7 +68,7 @@ options.Sync(true,2)                  // 指定该是否等待任务的执行结
 // 添加一个job，并添加多个任务节点，任务节点执行顺序执行
 // JobInput可以添加入参，属于job和task的可选参数
 // JobEnv 可以添加环境标识，属于job和task的可选参数
-err := NewJober("jober1", "sqc",JobEnv(map[string]interface{}{"env":"test"})).
+err := NewJob("jober1", "sqc",JobEnv(map[string]interface{}{"env":"test"})).
 	AddPipeline("task_1", "demo").
 	AddPipeline("task_2", "demo").
 	AddPipeline("task_3", "demo",JobInput(map[string]interface{}{"all_config": "yes",})).
@@ -78,15 +78,15 @@ Exec()
 ### （3）添加多个子任务：
 ```go
 // 添加多个子任务，子任务直接是可以并发执行的，互不影响
-jobTwo := NewJober("jober3", "sqc")
+jobTwo := NewJob("jober3", "sqc")
 jobTwo.AddJob(
-    NewJober("jober3_1", "sqc").
+    NewJob("jober3_1", "sqc").
         AddPipeline("task_1", "demo").
         AddPipeline("task_2", "demo").
         AddPipeline("task_3", "demo")
     ).Exec()
 jobTwo.AddJob(
-    NewJober("jober3_2", "sqc").
+    NewJob("jober3_2", "sqc").
         AddPipeline("task_1", "demo").
         AddPipeline("task_2", "demo").
         AddPipeline("task_3", "demo")
