@@ -13,7 +13,9 @@ type CronOptions struct {
 	SecondEnable   bool
 }
 
-var DefaultOption = CronOptions{}
+var DefaultOption = CronOptions{
+	CurrencyPolicy: config.AllowCronCurrencyPolicy,
+}
 
 // AppName with JobFlow AppName.
 func AppName(l string) CronOptionFunc {

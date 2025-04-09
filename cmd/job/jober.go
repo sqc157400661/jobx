@@ -17,11 +17,12 @@ import (
 )
 
 type Cronjob struct {
-	name    string
-	spec    string
-	owner   string
-	tenant  string
-	appName string
+	name           string
+	spec           string
+	owner          string
+	tenant         string
+	appName        string
+	currencyPolicy string
 }
 
 func NewCronjob(spec, name, owner string, opts ...flowopt.CronOptionFunc) (*Cronjob, error) {
@@ -39,11 +40,12 @@ func NewCronjob(spec, name, owner string, opts ...flowopt.CronOptionFunc) (*Cron
 		return nil, err
 	}
 	return &Cronjob{
-		spec:    spec,
-		name:    name,
-		owner:   owner,
-		tenant:  o.Tenant,
-		appName: o.AppName,
+		spec:           spec,
+		name:           name,
+		owner:          owner,
+		tenant:         o.Tenant,
+		appName:        o.AppName,
+		currencyPolicy: o.CurrencyPolicy,
 	}, nil
 }
 
@@ -98,14 +100,15 @@ func (c *Cronjob) ExecJob(job *Jober) (err error) {
 		}
 	}
 	cronJob := model.JobCron{
-		Name:        c.name,
-		Owner:       c.owner,
-		Status:      config.CronStatusValid,
-		Spec:        c.spec,
-		ExecType:    config.JobExecType,
-		ExecContent: job.Name,
-		Tenant:      c.tenant,
-		AppName:     c.appName,
+		Name:           c.name,
+		Owner:          c.owner,
+		Status:         config.CronStatusValid,
+		Spec:           c.spec,
+		ExecType:       config.JobExecType,
+		ExecContent:    job.Name,
+		Tenant:         c.tenant,
+		AppName:        c.appName,
+		CurrencyPolicy: c.currencyPolicy,
 	}
 	return cronJob.Save()
 }
