@@ -24,7 +24,7 @@ func (e Job) Get(c *gin.Context) {
 		return
 	}
 	var jobRes model.Job
-	session := model.DB().NewSession()
+	session := mysql.DB().NewSession()
 	defer session.Close()
 	searchFunc := search.MakeCondition(req)
 	_, err = searchFunc(session).Get(&jobRes)
@@ -47,7 +47,7 @@ func (e Job) GetPage(c *gin.Context) {
 	}
 	var count int64
 	var list []model.Job
-	session := model.DB().NewSession()
+	session := mysql.DB().NewSession()
 	defer session.Close()
 	searchFunc := search.MakeCondition(req, &req.Pagination)
 	count, err = searchFunc(session).Clone().Count(new(model.Job))
@@ -183,7 +183,7 @@ func (e Job) TaskList(c *gin.Context) {
 		return
 	}
 	var list []model.PipelineTask
-	session := model.DB().NewSession()
+	session := mysql.DB().NewSession()
 	defer session.Close()
 	searchFunc := search.MakeCondition(req)
 	err = searchFunc(session).Find(&list)

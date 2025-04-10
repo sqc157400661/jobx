@@ -80,12 +80,12 @@ func TestSkip(t *testing.T) {
 	require.NoError(t, err)
 	now := new(model.PipelineTask)
 	model.JFDb = engine
-	_, err = model.DB().Where("id=?", 1443).Asc("id").Get(now)
+	_, err = mysql.DB().Where("id=?", 1443).Asc("id").Get(now)
 	next, _ := now.Next()
 	fmt.Println()
 	next.Context = helper.UnsafeMergeMap(next.Context, now.Context)
 	fmt.Println(next.Context)
-	_, err = model.DB().Cols("context").ID(next.ID).Update(next)
+	_, err = mysql.DB().Cols("context").ID(next.ID).Update(next)
 	assert.NoError(t, err)
 }
 

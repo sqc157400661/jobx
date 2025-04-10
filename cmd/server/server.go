@@ -2,12 +2,12 @@ package server
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"net/http"
 	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/sqc157400661/helper/conf"
-	"github.com/sqc157400661/helper/mysql"
 	"github.com/sqc157400661/util"
 
 	"github.com/sqc157400661/jobx/api/router"
@@ -57,20 +57,12 @@ func StartServer() (err error) {
 	return
 }
 
-type DatabaseConfig struct {
-	Host   string `yaml:"host"`
-	Port   int    `yaml:"port"`
-	User   string `yaml:"user"`
-	Verify string `yaml:"verify"`
-	DB     string `yaml:"db"`
-}
-
 func initDB() (err error) {
-	var dbConf mysql.ConnectInfo
-	err = conf.UnmarshalKey("mysql", &dbConf)
-	if err != nil {
-		return err
-	}
+	//var dbConf mysql.ConnectInfo
+	//err = conf.UnmarshalKey("mysql", &dbConf)
+	//if err != nil {
+	//	return err
+	//}
 	model.JFDb, err = mysql.NewMySQLEngine(dbConf, true, true)
 	if err != nil {
 		return

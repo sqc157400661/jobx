@@ -34,7 +34,7 @@ func (j *JobCron) TableName() string {
 }
 
 func (j *JobCron) Save() (err error) {
-	_, err = DB().InsertOne(j)
+	_, err = mysql.DB().InsertOne(j)
 	return
 }
 
@@ -43,7 +43,7 @@ func (j *JobCron) TouchEntryID(id int) (err error) {
 		return
 	}
 	j.EntryID = id
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -52,7 +52,7 @@ func (j *JobCron) MarkRunning() (err error) {
 		return
 	}
 	j.Status = config.CronStatusRunning
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -62,7 +62,7 @@ func (j *JobCron) MarkValid() (err error) {
 	}
 	j.Locker = ""
 	j.Status = config.CronStatusValid
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -71,7 +71,7 @@ func (j *JobCron) MarkUpdating() (err error) {
 		return
 	}
 	j.Status = config.CronStatusUpdating
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -80,7 +80,7 @@ func (j *JobCron) HealthCheckOk() (err error) {
 		return
 	}
 	j.LastHealthTime = time.Now()
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -89,7 +89,7 @@ func (j *JobCron) MarkDeleted() (err error) {
 		return
 	}
 	j.Status = config.CronStatusDeleted
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -98,7 +98,7 @@ func (j *JobCron) MarkRebooting() (err error) {
 		return
 	}
 	j.Status = config.CronStatusRebooting
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 
@@ -107,7 +107,7 @@ func (j *JobCron) Add() (id int64, err error) {
 	if j == nil {
 		return
 	}
-	id, err = DB().Insert(j)
+	id, err = mysql.DB().Insert(j)
 	return
 }
 
@@ -116,7 +116,7 @@ func (j *JobCron) Update() (err error) {
 	if j == nil {
 		return
 	}
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }
 

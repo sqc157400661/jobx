@@ -14,12 +14,12 @@ func (j *JobLogs) TableName() string {
 
 // Add 添加log
 func (j *JobLogs) Add() (id int64, err error) {
-	id, err = DB().Insert(j)
+	id, err = mysql.DB().Insert(j)
 	return
 }
 
 // Update 更新log
 func (j *JobLogs) Update() (err error) {
-	_, err = DB().ID(j.ID).Update(j)
+	_, err = mysql.DB().ID(j.ID).Update(j)
 	return
 }

@@ -31,18 +31,18 @@ func (t *PipelineTask) TableName() string {
 
 //func (t *PipelineTask) MarkRunning() (err error) {
 //	t.State.Phase = config.PhaseRunning
-//	_, err = DB().Update(t, &PipelineTask{ID: t.ID, State: State{Phase: config.PhaseReady}})
+//	_, err = mysql.DB().Update(t, &PipelineTask{ID: t.ID, State: State{Phase: config.PhaseReady}})
 //	return
 //}
 
 func (t *PipelineTask) Update() (err error) {
-	_, err = DB().Update(t, &PipelineTask{ID: t.ID})
+	_, err = mysql.DB().Update(t, &PipelineTask{ID: t.ID})
 	return
 }
 
 func (t *PipelineTask) Next() (next *PipelineTask, err error) {
 	next = new(PipelineTask)
-	_, err = DB().Where("id>? and job_id=?", t.ID, t.JobID).Asc("id").Get(next)
+	_, err = mysql.DB().Where("id>? and job_id=?", t.ID, t.JobID).Asc("id").Get(next)
 	return
 }
 
@@ -52,7 +52,7 @@ func (t *PipelineTask) Succeed() (err error) {
 		Phase:  config.PhaseTerminated,
 		Status: config.StatusSuccess,
 	}
-	_, err = DB().Update(t, &PipelineTask{ID: t.ID})
+	_, err = mysql.DB().Update(t, &PipelineTask{ID: t.ID})
 	return
 }
 
@@ -75,18 +75,18 @@ func (t *PipelineTask) Fail(err error) {
 		Status: config.StatusFail,
 		Reason: reason,
 	}
-	_, e := DB().Update(t, &PipelineTask{ID: t.ID})
+	_, e := mysql.DB().Update(t, &PipelineTask{ID: t.ID})
 	if e != nil {
 		klog.Errorf("PipelineTask Fail err：%s  id:%d ", e.Error(), t.ID)
 	}
 }
 
 func (t *PipelineTask) RefreshState() (state State) {
-	_, _ = DB().ID(t.ID).Get(t)
+	_, _ = mysql.DB().ID(t.ID).Get(t)
 	return t.State
 }
 
 func (t *PipelineTask) Save() (err error) {
-	_, err = DB().InsertOne(t)
+	_, err = mysql.DB().InsertOne(t)
 	return
 }

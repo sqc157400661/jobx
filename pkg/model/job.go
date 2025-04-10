@@ -30,17 +30,17 @@ func (j *Job) TableName() string {
 }
 
 func (j *Job) Save() (err error) {
-	_, err = DB().InsertOne(j)
+	_, err = mysql.DB().InsertOne(j)
 	return
 }
 
 func (t *Job) Update() (err error) {
-	_, err = DB().Update(t, &Job{ID: t.ID})
+	_, err = mysql.DB().Update(t, &Job{ID: t.ID})
 	return
 }
 
 func (j *Job) MarkRunning() (err error) {
 	j.State.Phase = config.PhaseRunning
-	_, err = DB().Update(j, &Job{ID: j.ID, State: State{Phase: config.PhaseReady}})
+	_, err = mysql.DB().Update(j, &Job{ID: j.ID, State: State{Phase: config.PhaseReady}})
 	return
 }

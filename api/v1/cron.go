@@ -24,7 +24,7 @@ func (e Cron) GetPage(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	session := model.DB().NewSession()
+	session := mysql.DB().NewSession()
 	defer session.Close()
 	var count int64
 	list := make([]model.JobCron, 0)
@@ -61,7 +61,7 @@ func (e Cron) Add(c *gin.Context) {
 		return
 	}
 	// todo 查询任务def 判断ExecContent中的任务是否存在
-	session := model.DB().NewSession()
+	session := mysql.DB().NewSession()
 	defer session.Close()
 	var cron = &model.JobCron{
 		Name:        req.Name,

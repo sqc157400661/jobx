@@ -3,6 +3,7 @@ package biz
 import (
 	"fmt"
 	"github.com/sqc157400661/jobx/api/types/request"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/helper"
@@ -46,12 +47,12 @@ func Retry(req request.RetryReq) (err error) {
 	if req.Input != nil && len(req.Input) > 0 {
 		task.Input = req.Input
 	}
-	_, err = model.DB().Cols("phase", "status", "input").Update(&task, &model.PipelineTask{ID: task.ID})
+	_, err = mysql.DB().Cols("phase", "status", "input").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
 	sql := fmt.Sprintf("update %s set phase = ?,status = ?,locker='' where id in (?,?)", rootJob.TableName())
-	_, err = model.DB().Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
+	_, err = mysql.DB().Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
 	return
 }
 
@@ -71,7 +72,7 @@ func Pause(req request.PauseReq) (err error) {
 		return
 	}
 	task.Status = config.StatusPause
-	_, err = model.DB().Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
+	_, err = mysql.DB().Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -101,14 +102,14 @@ func PauseJob(req request.PauseReq) (err error) {
 		}
 		if task.IsReady() {
 			task.Status = config.StatusPause
-			_, err = model.DB().Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
+			_, err = mysql.DB().Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
 			if err != nil {
 				return
 			}
 		}
 	}
 	sql := fmt.Sprintf("update %s set status = ? where id =?", job.TableName())
-	_, err = model.DB().Exec(sql, config.StatusPause, req.JobID)
+	_, err = mysql.DB().Exec(sql, config.StatusPause, req.JobID)
 	return
 }
 
@@ -133,14 +134,14 @@ func RestartJob(req request.RestartReq) (err error) {
 		if task.IsPausing() {
 			task.Status = config.StatusPending
 			task.Phase = config.PhaseReady
-			_, err = model.DB().Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
+			_, err = mysql.DB().Cols("phase", "status").Update(task, &model.PipelineTask{ID: task.ID})
 			if err != nil {
 				return
 			}
 		}
 	}
 	sql := fmt.Sprintf("update %s set phase = ?,status = ?,locker='' where id=?", job.TableName())
-	_, err = model.DB().Exec(sql, config.PhaseReady, config.StatusPending, req.JobID)
+	_, err = mysql.DB().Exec(sql, config.PhaseReady, config.StatusPending, req.JobID)
 	if err != nil {
 		return
 	}
@@ -178,7 +179,7 @@ func Skip(req request.SkipReq) (err error) {
 		return
 	}
 	task.Status = config.StatusSkip
-	_, err = model.DB().Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
+	_, err = mysql.DB().Cols("phase", "status").Update(&task, &model.PipelineTask{ID: task.ID})
 	if err != nil {
 		return
 	}
@@ -188,7 +189,7 @@ func Skip(req request.SkipReq) (err error) {
 	}
 	if next.ID > 0 {
 		next.Context = helper.UnsafeMergeMap(next.Context, task.Context)
-		_, err = model.DB().Cols("context").Update(next, &model.PipelineTask{ID: next.ID})
+		_, err = mysql.DB().Cols("context").Update(next, &model.PipelineTask{ID: next.ID})
 		if err != nil {
 			return
 		}
@@ -199,7 +200,7 @@ func Skip(req request.SkipReq) (err error) {
 			Status: config.StatusPending,
 		}
 		sql := fmt.Sprintf("update %s set phase = ?,status = ?,locker='' where id in (?,?)", rootJob.TableName())
-		_, err = model.DB().Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
+		_, err = mysql.DB().Exec(sql, state.Phase, state.Status, rootJob.ID, task.JobID)
 	}
 	return
 }
@@ -225,7 +226,7 @@ func Discard(req request.DiscardReq) (err error) {
 		return
 	}
 	sql := fmt.Sprintf("update %s set status = ?,biz_id='' where id =?", rootJob.TableName())
-	_, err = model.DB().Exec(sql, config.StatusDiscarded, rootJob.ID)
+	_, err = mysql.DB().Exec(sql, config.StatusDiscarded, rootJob.ID)
 	return
 }
 
@@ -246,9 +247,9 @@ func ForceDiscard(req request.DiscardReq) (err error) {
 		return
 	}
 	sql := fmt.Sprintf("update %s set status = ?,biz_id='' where id =?", rootJob.TableName())
-	_, err = model.DB().Exec(sql, config.StatusDiscarded, rootJob.ID)
+	_, err = mysql.DB().Exec(sql, config.StatusDiscarded, rootJob.ID)
 	if req.TaskID > 0 {
-		_, err = model.DB().ID(req.TaskID).Cols("phase", "status").Update(map[string]string{
+		_, err = mysql.DB().ID(req.TaskID).Cols("phase", "status").Update(map[string]string{
 			"phase":  config.PhaseTerminated,
 			"status": config.StatusDiscarded,
 		})
@@ -265,7 +266,7 @@ func ForceDiscard(req request.DiscardReq) (err error) {
 //}
 
 func getTaskByID(id int) (task model.PipelineTask, err error) {
-	_, err = model.DB().ID(id).Get(&task)
+	_, err = mysql.DB().ID(id).Get(&task)
 	if err != nil {
 		return
 	}

@@ -15,6 +15,6 @@ func (j *JobDefinition) TableName() string {
 }
 
 func (j *JobDefinition) Save() (err error) {
-	_, err = DB().InsertOne(j)
+	_, err = mysql.DB().InsertOne(j)
 	return
 }

@@ -41,7 +41,7 @@ type Pipeline struct {
 }
 
 func SaveJobsFromDef(parentDef JobDef) (rootId int, err error) {
-	sess := model.DB().NewSession()
+	sess := mysql.DB().NewSession()
 	err = sess.Begin()
 	defer func() {
 		if err != nil {

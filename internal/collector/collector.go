@@ -185,7 +185,7 @@ func (r *DefaultCronTrigger) processCronJob(c *model.JobCron) error {
 
 func (r *DefaultCronTrigger) handleDeletingJob(c *model.JobCron) error {
 	// 优先删除数据库记录
-	if _, err := model.DB().ID(c.ID).Delete(c); err != nil {
+	if _, err := mysql.DB().ID(c.ID).Delete(c); err != nil {
 		return fmt.Errorf("delete cronjob failed: %w", err)
 	}
 	r.remove(c.EntryID)
