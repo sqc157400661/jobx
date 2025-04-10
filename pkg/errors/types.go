@@ -1,14 +1,11 @@
 package errors
 
 const (
-	// Code for error
+// Code for error
 
-	NoError     = 0
-	ServerError = 499
-	ParamError  = 400
-	// for Tracker
-	// for Worker
-	// for DB
+// for Tracker
+// for Worker
+// for DB
 )
 
 var ErrorReasonMap = map[int]string{
@@ -26,6 +23,8 @@ var ErrorReasonMap = map[int]string{
 	InvalidParameterCode:       InvalidParameterReason,
 	JobDefExistCode:            JobDefExistReason,
 	CronJobExistCode:           CronJobExistReason,
+	InternalDBError:            InternalDBErrorReason,
+	InternalError:              InternalErrorReason,
 }
 
 const (
@@ -35,6 +34,10 @@ const (
 	UnknownReason          = "Unknown error"
 	InvalidParameterCode   = 101
 	InvalidParameterReason = "Invalid parameter"
+	InternalError          = 500
+	InternalErrorReason    = "server err"
+	InternalDBError        = 511
+	InternalDBErrorReason  = "db error"
 
 	BIZExist           = 1001
 	BIZExistReason     = "biz conflict,biz uid already exists"

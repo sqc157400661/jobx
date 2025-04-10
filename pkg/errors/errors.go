@@ -9,13 +9,18 @@ type Error struct {
 	Code    int32  `json:"code,omitempty"`
 	Reason  string `json:"reason,omitempty"`
 	Message string `json:"message,omitempty"`
+	cause   error
 }
 
 func (e *Error) Error() string {
-	if e.Reason == "" {
-		return fmt.Sprintf("error: code = %d message = %s", e.Code, e.Message)
+	errMsg := fmt.Sprintf("error: code = %d message = %s", e.Code, e.Message)
+	if e.Reason != "" {
+		errMsg += fmt.Sprintf(" reason = %s", e.Reason)
 	}
-	return fmt.Sprintf("error: code = %d reason = %s message = %s", e.Code, e.Reason, e.Message)
+	if e.cause != nil {
+		errMsg += fmt.Sprintf(" cause = %v", e.cause)
+	}
+	return errMsg
 }
 
 // Is reports whether any error in err's chain matches target.
@@ -28,6 +33,15 @@ func (e *Error) Is(err error) bool {
 		return false
 	}
 	return targetErr.Code == e.Code
+}
+
+// Wrap warp a error msg
+func (e *Error) Wrap(err error) *Error {
+	if err == nil {
+		return e
+	}
+	e.cause = err
+	return e
 }
 
 // New returns an error object for the code, message.

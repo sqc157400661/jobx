@@ -30,14 +30,6 @@ func IsTokenExist(err error) bool {
 	return false
 }
 
-func BIZConflict(msg string) error {
-	return New(BIZExist, msg)
-}
-
-func TokenConflict(msg string) error {
-	return New(TokenExist, msg)
-}
-
 func IsWaitTimeout(err error) bool {
 	if Code(err) == WaitJobTimeout {
 		return true
@@ -65,10 +57,30 @@ func IsQueueEmpty(err error) bool {
 	return false
 }
 
-func NewNoTaskFoundErrorWithJobID(rootID, jobID int) error {
+func BIZConflict(msg string) *Error {
+	return New(BIZExist, msg)
+}
+
+func TokenConflict(msg string) *Error {
+	return New(TokenExist, msg)
+}
+
+func NewNoTaskFoundErrorWithJobID(rootID, jobID int) *Error {
 	return New(NoTaskFoundCode, fmt.Sprintf("rootID:%d job:%d", rootID, jobID))
 }
 
-func NewNoRunnablePipelineTaskErrorWithJobID(rootID, jobID int) error {
+func NewNoRunnablePipelineTaskErrorWithJobID(rootID, jobID int) *Error {
 	return New(NoRunnablePipelineTaskCode, fmt.Sprintf("rootID:%d job:%d", rootID, jobID))
+}
+
+func NewParamError(msg string) *Error {
+	return New(InvalidParameterCode, msg)
+}
+
+func NewDBError(msg string) *Error {
+	return New(InternalDBError, msg)
+}
+
+func NewInternalError(msg string) *Error {
+	return New(InternalError, msg)
 }

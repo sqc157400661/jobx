@@ -3,7 +3,11 @@ package job
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/robfig/cron/v3"
+	"gopkg.in/yaml.v3"
+
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/internal/helper"
 	"github.com/sqc157400661/jobx/internal/job"
@@ -12,8 +16,6 @@ import (
 	"github.com/sqc157400661/jobx/pkg/options/cronopt"
 	"github.com/sqc157400661/jobx/pkg/options/jobopt"
 	"github.com/sqc157400661/jobx/pkg/providers"
-	"gopkg.in/yaml.v3"
-	"time"
 )
 
 type Cronjob struct {
@@ -35,7 +37,7 @@ func NewCronjob(spec, name, owner string, opts ...cronopt.CronOptionFunc) (*Cron
 	parser := cron.NewParser(cronParseOption)
 	_, err := parser.Parse(spec)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewParamError("invalid spec").Wrap(err)
 	}
 	return &Cronjob{
 		spec:  spec,
@@ -53,7 +55,7 @@ func (c *Cronjob) ExecJob(job *Jober) (err error) {
 	//jobStorage := storage.NewJobStorage(sess)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
-		return err
+		return errors.NewDBError("begin err").Wrap(err)
 	}
 	defer func() {
 		if err != nil {
@@ -114,12 +116,12 @@ func YAMLToJob(yamlContent []byte) (int, error) {
 	var err error
 	// Unmarshal YAML
 	if err = yaml.Unmarshal(yamlContent, &jobDef); err != nil {
-		return 0, fmt.Errorf("failed to unmarshal YAML: %w", err)
+		return 0, errors.NewParamError("failed to unmarshal YAML").Wrap(err)
 	}
 	var rootId int
 	// Process child jobs recursively
 	if rootId, err = job.SaveJobsFromDef(jobDef.JobDef); err != nil {
-		return 0, fmt.Errorf("failed to process child jobs: %w", err)
+		return 0, errors.NewParamError("failed to process child jobs").Wrap(err)
 	}
 	return rootId, nil
 }
@@ -164,7 +166,7 @@ func NewJob(name, owner string, opts ...jobopt.JobOptionFunc) *Jober {
 
 func (j *Jober) AddJob(job *Jober) *Jober {
 	if j.Pipelines != nil {
-		job.err = errors.New(errors.ParamError, "jober can not add,because higher level jober already has pipeline")
+		job.err = errors.NewParamError("jober can not add,because higher level jober already has pipeline")
 	}
 	if job.err != nil {
 		return job
@@ -175,7 +177,7 @@ func (j *Jober) AddJob(job *Jober) *Jober {
 	job.Input = helper.UnsafeMergeMap(job.Input, j.Input)
 	job.Env = helper.UnsafeMergeMap(job.Env, j.Env)
 	if job.level > config.MaxJobLevel {
-		job.err = errors.New(errors.ParamError, "job level exceeds max limit")
+		job.err = errors.NewParamError("job level exceeds max limit")
 	}
 	j.Jobs = append(j.Jobs, job.JobDef)
 	return job
@@ -218,7 +220,7 @@ func (j *Jober) Exec() (err error) {
 	//jobStorage := storage.NewJobStorage(sess)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
-		return err
+		return errors.NewDBError("begin err").Wrap(err)
 	}
 	defer func() {
 		if err != nil {
@@ -227,25 +229,11 @@ func (j *Jober) Exec() (err error) {
 			_ = sess.Commit()
 		}
 	}()
-	if j.BizID != "" {
-		var has bool
-		var existJob model.Job
-		existJob, has, err = model.GetJobByBizId(j.BizID)
-		if err != nil {
-			return err
-		}
-		if has {
-			j.JobId = existJob.ID
-			return errors.BIZConflict(fmt.Sprintf("biz:%s rootID:%d", j.BizID, existJob.RootID))
-		}
+	if err = j.checkBizID(); err != nil {
+		return err
 	}
-	if len(j.tokens) > 0 {
-		var rootId int
-		rootId, err = model.CheckTokens(j.tokens)
-		if err != nil {
-			j.JobId = rootId
-			return
-		}
+	if err = j.checkTokens(); err != nil {
+		return err
 	}
 	var rootId int
 	if rootId, err = job.SaveJobsFromDef(j.JobDef); err != nil {
@@ -257,6 +245,36 @@ func (j *Jober) Exec() (err error) {
 	}
 	if j.sync {
 		return WaitJob(rootId, j.syncTimeOut)
+	}
+	return nil
+}
+
+func (j *Jober) checkBizID() (err error) {
+	if j.BizID == "" {
+		return nil
+	}
+	var has bool
+	var existJob model.Job
+	existJob, has, err = model.GetJobByBizId(j.BizID)
+	if err != nil {
+		return err
+	}
+	if has {
+		j.JobId = existJob.ID
+		return errors.BIZConflict(fmt.Sprintf("biz:%s rootID:%d", j.BizID, existJob.RootID))
+	}
+	return nil
+}
+
+func (j *Jober) checkTokens() (err error) {
+	if len(j.tokens) == 0 {
+		return nil
+	}
+	var rootId int
+	rootId, err = model.CheckTokens(j.tokens)
+	if err != nil {
+		j.JobId = rootId
+		return
 	}
 	return nil
 }
@@ -316,7 +334,7 @@ func waitJob(ctx context.Context, jobId int, done chan struct{}) {
 			}
 		}()
 	}()
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(200 * time.Microsecond)
 	defer ticker.Stop() // 确保在函数返回时停止定时器
 	var job model.Job
 	for {

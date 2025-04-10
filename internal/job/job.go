@@ -2,9 +2,11 @@ package job
 
 import (
 	"fmt"
-	"github.com/sqc157400661/jobx/config"
-	"github.com/sqc157400661/jobx/pkg/model"
 	"time"
+
+	"github.com/sqc157400661/jobx/config"
+	"github.com/sqc157400661/jobx/pkg/errors"
+	"github.com/sqc157400661/jobx/pkg/model"
 )
 
 type JobDefinition struct {
@@ -92,7 +94,7 @@ func SaveJobsFromDef(parentDef JobDef) (rootId int, err error) {
 
 		if err = childJob.Save(); err != nil {
 			// todo define error
-			return 0, fmt.Errorf("failed to update child job %s: %w", current.def.Name, err)
+			return 0, errors.NewDBError(fmt.Sprintf("failed to update child job %s: %w", current.def.Name, err))
 		}
 
 		// 将子任务加入队列
@@ -141,7 +143,7 @@ func createJobFromDef(def *JobDef, parent *model.Job) (*model.Job, error) {
 
 	// If this job is runnable, create pipeline tasks
 	if job.Runnable == 1 {
-		if err := createPipelineTasks(def.Pipelines, job.ID); err != nil {
+		if err = createPipelineTasks(def.Pipelines, job.ID); err != nil {
 			return nil, fmt.Errorf("failed to create pipeline tasks: %w", err)
 		}
 	}
