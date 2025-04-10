@@ -2,70 +2,30 @@ package server
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/pkg/mysql"
 	"net/http"
 	"time"
 
-	"github.com/spf13/pflag"
-	"github.com/sqc157400661/helper/conf"
-	"github.com/sqc157400661/util"
-
 	"github.com/sqc157400661/jobx/api/router"
-	"github.com/sqc157400661/jobx/cmd/service"
-	"github.com/sqc157400661/jobx/hack/demo"
-	"github.com/sqc157400661/jobx/pkg/model"
-	"github.com/sqc157400661/jobx/pkg/providers"
 )
 
-var configFile = pflag.StringP("config", "c", "./config.yaml", "Input Config File")
-
-func StartServer() (err error) {
-	pflag.Parse()
-	//初始化配置文件
-	conf.Setup(*configFile)
-
-	err = initDB()
+func StartServer(config config.ServerConfig) (err error) {
+	err = mysql.SetDB(config.MySQL)
 	if err != nil {
-		util.PrintFatalError(err)
+		return err
 	}
 	//路由配置
 	routersInit := router.InitRouter()
 	//http服务器配置
 	s := &http.Server{
-		Addr:           fmt.Sprintf(":%d", conf.GetIntD("server.port", 8080)),
+		Addr:           fmt.Sprintf(":%d", config.ServerPort),
 		Handler:        routersInit,
-		ReadTimeout:    conf.GetDurationD("server.readTimeout", 30) * time.Millisecond,
-		WriteTimeout:   conf.GetDurationD("server.writeTimeout", 30) * time.Millisecond,
+		ReadTimeout:    30 * time.Millisecond,
+		WriteTimeout:   30 * time.Millisecond,
 		MaxHeaderBytes: 1 << 20,
 	}
-	jb, _ := service.NewJobFlow("sqc_test_compute", model.JFDb)
-	_ = jb.Register(
-		&providers.DemoTasker{},
-		&providers.Demo2Tasker{},
-		&demo.CheckIdle{},
-		&demo.MarkVwStatusInDB{},
-		&demo.MarkVwPendingStatusInDB{},
-		&demo.QueryCnchPendingTask{},
-		&demo.QueryMetric{},
-		&demo.UpdateK8sResource{},
-		&demo.UpdateK8sResourceCheckLoop{},
-		&demo.PreVwCheckTasker{},
-	)
-	jb.Start()
 	//启动服务器
 	err = s.ListenAndServe()
 	return
-}
-
-func initDB() (err error) {
-	//var dbConf mysql.ConnectInfo
-	//err = conf.UnmarshalKey("mysql", &dbConf)
-	//if err != nil {
-	//	return err
-	//}
-	model.JFDb, err = mysql.NewMySQLEngine(dbConf, true, true)
-	if err != nil {
-		return
-	}
-	return nil
 }

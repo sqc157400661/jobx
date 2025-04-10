@@ -3,6 +3,7 @@ package collector
 import (
 	"database/sql"
 	"fmt"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"sync"
 
 	"github.com/go-xorm/xorm"
@@ -39,7 +40,7 @@ type DefaultCollector struct {
 	engine    *xorm.Engine
 }
 
-func NewDefaultCollector(engine *xorm.Engine, serverUid, tenant, appName string, len int) (collector *DefaultCollector) {
+func NewDefaultCollector(serverUid, tenant, appName string, len int) (collector *DefaultCollector) {
 	if len <= 0 {
 		len = 1
 	}
@@ -48,7 +49,7 @@ func NewDefaultCollector(engine *xorm.Engine, serverUid, tenant, appName string,
 		appName:   appName,
 		serverUid: serverUid,
 		stealLen:  len,
-		engine:    engine,
+		engine:    mysql.DB(),
 	}
 }
 

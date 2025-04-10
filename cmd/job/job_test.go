@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sqc157400661/jobx/cmd/service"
 	"github.com/sqc157400661/jobx/hack/demo"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"github.com/sqc157400661/jobx/pkg/options/jobopt"
 	"github.com/sqc157400661/jobx/pkg/providers"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sqc157400661/jobx/pkg/model"
 	"github.com/sqc157400661/jobx/test"
 )
 
@@ -117,7 +117,7 @@ func TestJober(t *testing.T) {
 func TestWaitJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	err = WaitJob(400039, 10)
 	fmt.Println(err, 343454534)
 
@@ -128,7 +128,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	model.JFDb = engine
+	mysql.JFDb = engine
 	jobFlow, _ := service.NewJobFlow("sqc_test_compute", engine)
 	_ = jobFlow.Register(
 		&providers.DemoTasker{},

@@ -7,6 +7,7 @@ import (
 	"github.com/sqc157400661/jobx/api/types/request"
 	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/pkg/model"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"github.com/sqc157400661/jobx/pkg/search"
 )
 

@@ -18,7 +18,7 @@ import (
 func TestRetry(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	var req = request.RetryReq{
 		TaskID: 935,
 		//IDs:   []int64{514, 510},
@@ -30,7 +30,7 @@ func TestRetry(t *testing.T) {
 func TestPause(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	var req = request.PauseReq{
 		TaskID: 935,
 		//IDs:   []int64{514, 510},
@@ -42,7 +42,7 @@ func TestPause(t *testing.T) {
 func TestPauseJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	var req = request.PauseReq{
 		JobID: 132,
 		//IDs:   []int64{514, 510},
@@ -54,7 +54,7 @@ func TestPauseJob(t *testing.T) {
 func TestRestartJob(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	var req = request.RestartReq{
 		JobID: 132,
 		//IDs:   []int64{514, 510},
@@ -66,7 +66,7 @@ func TestRestartJob(t *testing.T) {
 func TestAbandon(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	var req = request.DiscardReq{
 		JobID: 11111193,
 		//IDs:   []int64{514, 510},
@@ -79,7 +79,7 @@ func TestSkip(t *testing.T) {
 	engine, err := test.GetEngine()
 	require.NoError(t, err)
 	now := new(model.PipelineTask)
-	model.JFDb = engine
+	mysql.JFDb = engine
 	_, err = mysql.DB().Where("id=?", 1443).Asc("id").Get(now)
 	next, _ := now.Next()
 	fmt.Println()

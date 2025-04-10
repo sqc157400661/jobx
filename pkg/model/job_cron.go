@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"time"
 
 	"github.com/sqc157400661/jobx/config"

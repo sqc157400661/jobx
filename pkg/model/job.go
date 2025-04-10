@@ -1,6 +1,9 @@
 package model
 
-import "github.com/sqc157400661/jobx/config"
+import (
+	"github.com/sqc157400661/jobx/config"
+	"github.com/sqc157400661/jobx/pkg/mysql"
+)
 
 // Job [...]
 type Job struct {

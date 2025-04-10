@@ -2,6 +2,12 @@ package config
 
 import "fmt"
 
+type ServerConfig struct {
+	MySQL      MySQL  `yaml:"mysql"`
+	ServerUid  string `yaml:"serverUid"`
+	ServerPort int    `yaml:"serverPort"`
+}
+
 type MySQL struct {
 	Host   string `yaml:"host"`
 	Port   int    `yaml:"port"`

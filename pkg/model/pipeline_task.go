@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"k8s.io/klog/v2"
 
 	"github.com/sqc157400661/jobx/config"

@@ -2,11 +2,12 @@ package service
 
 import (
 	"fmt"
+	"github.com/sqc157400661/jobx/config"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"github.com/sqc157400661/jobx/pkg/options/flowopt"
 	"sync"
 	"time"
 
-	"github.com/go-xorm/xorm"
 	"k8s.io/klog/v2"
 
 	"github.com/sqc157400661/jobx/cmd/log"
@@ -50,10 +51,14 @@ type JobFlow struct {
 }
 
 // NewJobFlow creates a new JobFlow instance with specified UID and database connection
-func NewJobFlow(uid string, db *xorm.Engine, opts ...flowopt.OptionFunc) (jf *JobFlow, err error) {
-	if uid == "" || db == nil {
+func NewJobFlow(uid string, conf config.MySQL, opts ...flowopt.OptionFunc) (jf *JobFlow, err error) {
+	if uid == "" || conf.Host == "" {
 		err = joberrors.ErrInvalidParameter
 		return
+	}
+	err = mysql.SetDB(conf)
+	if err != nil {
+		return nil, err
 	}
 	jf = &JobFlow{
 		uid:        uid,
@@ -66,13 +71,12 @@ func NewJobFlow(uid string, db *xorm.Engine, opts ...flowopt.OptionFunc) (jf *Jo
 		opt(&jf.opts)
 	}
 	// Initialize components with proper isolation
-	jf.collector = collector.NewDefaultCollector(db, uid, jf.opts.Tenant, jf.opts.AppName, collectorJobLen)
+	jf.collector = collector.NewDefaultCollector(mysql.DB(), uid, jf.opts.Tenant, jf.opts.AppName, collectorJobLen)
 	jf.worker = internal.NewDefaultWorkerPool(jf.opts.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker, jf.localQueue)
 	if !jf.opts.DisableCron {
 		jf.cronTrigger = collector.NewDefaultCronTrigger()
 	}
-	model.SetDB(db)
 	return
 }
 

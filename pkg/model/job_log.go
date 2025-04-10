@@ -1,5 +1,7 @@
 package model
 
+import "github.com/sqc157400661/jobx/pkg/mysql"
+
 // JobLogs [...]
 type JobLogs struct {
 	ID       int    `xorm:"id pk autoincr" json:"-"`

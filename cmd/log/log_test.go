@@ -1,7 +1,7 @@
 package log
 
 import (
-	"github.com/sqc157400661/jobx/pkg/model"
+	"github.com/sqc157400661/jobx/pkg/mysql"
 	"github.com/sqc157400661/jobx/test"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -10,7 +10,7 @@ import (
 
 func TestLog(t *testing.T) {
 	engine, err := test.GetEngine()
-	model.JFDb = engine
+	mysql.JFDb = engine
 	require.NoError(t, err)
 	Info(3333, "测试12345678")
 	time.Sleep(time.Second * 60)
