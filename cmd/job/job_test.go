@@ -3,6 +3,7 @@ package job
 import (
 	"fmt"
 	"github.com/sqc157400661/jobx/cmd/service"
+	"github.com/sqc157400661/jobx/config"
 	"github.com/sqc157400661/jobx/hack/demo"
 	"github.com/sqc157400661/jobx/pkg/mysql"
 	"github.com/sqc157400661/jobx/pkg/options/jobopt"
@@ -129,7 +130,13 @@ func init() {
 		panic(err)
 	}
 	mysql.JFDb = engine
-	jobFlow, _ := service.NewJobFlow("sqc_test_compute", engine)
+	jobFlow, _ := service.NewJobFlow("sqc_test_compute", config.MySQL{
+		Host:   "localhost",
+		User:   "root",
+		Passwd: "157400661",
+		DB:     "task_center",
+		Port:   3306,
+	})
 	_ = jobFlow.Register(
 		&providers.DemoTasker{},
 		&providers.Demo2Tasker{},

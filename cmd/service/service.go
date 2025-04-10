@@ -71,7 +71,7 @@ func NewJobFlow(uid string, conf config.MySQL, opts ...flowopt.OptionFunc) (jf *
 		opt(&jf.opts)
 	}
 	// Initialize components with proper isolation
-	jf.collector = collector.NewDefaultCollector(mysql.DB(), uid, jf.opts.Tenant, jf.opts.AppName, collectorJobLen)
+	jf.collector = collector.NewDefaultCollector(uid, jf.opts.Tenant, jf.opts.AppName, collectorJobLen)
 	jf.worker = internal.NewDefaultWorkerPool(jf.opts.PoolLen)
 	jf.tracker = internal.NewTracker(jf.worker, jf.localQueue)
 	if !jf.opts.DisableCron {
